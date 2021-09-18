@@ -9,13 +9,15 @@ use function array_map;
 use function count;
 use function explode;
 use function filter_var;
+use function implode;
 use function is_array;
 use function is_countable;
 use function is_null;
 use function is_numeric;
 use function is_string;
+use function ksort;
 use function mb_strlen;
-use function str_starts_with;
+use function sprintf;
 use function strtolower;
 use function trim;
 
@@ -26,59 +28,71 @@ class ValidationRuleset
     protected const FLAG_NULLABLE = 1 << 2;
     protected const FLAG_BAIL = 1 << 3;
 
-    /**
-     * @var int base flags
-     */
+    /** @var int base flags */
     protected int $flags;
 
     /** @var Closure[] */
     protected array $validatesAttributes = [];
-    protected array $validatesAttributesArgsMap = [];
+    protected array $validatesAttributesArgs = [];
 
-    public function __construct(string $ruleString)
+    protected static array $pool = [];
+
+    public static function make(string $ruleString): static
+    {
+        $ruleMap = static::convertRuleStringToRuleMap($ruleString);
+        $hash = static::getHashOfRuleMap($ruleMap);
+        if (!isset(static::$pool[$hash])) {
+            $ruleset = static::$pool[$hash] = new static($ruleMap);
+        } else {
+            $ruleset = static::$pool[$hash];
+        }
+        return $ruleset;
+    }
+
+    protected function __construct(array $ruleMap)
     {
         $flags = 0;
         $validatesAttributes = [];
         $validatesAttributesArgs = [];
-        $ruleParts = array_map('trim', explode('|', $ruleString));
-        foreach ($ruleParts as $rolePart) {
-            $rolePart = strtolower($rolePart);
-            if ($rolePart == 'sometimes') {
+
+        foreach ($ruleMap as $rule => $ruleArgs) {
+            $rule = strtolower($rule);
+            if ($rule == 'sometimes') {
                 $flags |= static::FLAG_SOMETIMES;
-            } elseif ($rolePart == 'required') {
+            } elseif ($rule == 'required') {
                 $flags |= static::FLAG_REQUIRED;
-                $validatesAttributes[$rolePart] = Closure::fromCallable([static::class, 'validateRequired']);
-            } elseif ($rolePart == 'nullable') {
+                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateRequired']);
+            } elseif ($rule == 'nullable') {
                 $flags |= static::FLAG_NULLABLE;
-            } elseif ($rolePart == 'numeric') {
-                $validatesAttributes[$rolePart] = Closure::fromCallable([static::class, 'validateNumeric']);
-            } elseif ($rolePart == 'int' || $rolePart == 'integer') {
-                $validatesAttributes[$rolePart] = Closure::fromCallable([static::class, 'validateInt']);
-            } elseif ($rolePart == 'string') {
-                $validatesAttributes[$rolePart] = Closure::fromCallable([static::class, 'validateString']);
-            } elseif ($rolePart == 'array') {
-                $validatesAttributes[$rolePart] = Closure::fromCallable([static::class, 'validateArray']);
-            } elseif (str_starts_with($rolePart, 'min:') || str_starts_with($rolePart, 'max:')) {
-                $rolePartParts = explode(':', $rolePart, 2);
-                if (count($rolePartParts) !== 2) {
-                    throw new InvalidArgumentException("Invalid rule part {$rolePart}");
+            } elseif ($rule == 'numeric') {
+                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateNumeric']);
+            } elseif ($rule == 'int' || $rule == 'integer') {
+                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateInt']);
+            } elseif ($rule == 'string') {
+                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateString']);
+            } elseif ($rule == 'array') {
+                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateArray']);
+            } elseif ($rule === 'min' || $rule === 'max') {
+                if (count($ruleArgs) !== 1) {
+                    throw new InvalidArgumentException("Rule {$rule} require 1 parameter");
                 }
-                if ($rolePartParts[0] === 'min') {
+                if ($rule === 'min') {
                     $validatesAttribute = Closure::fromCallable([static::class, 'validateMin']);
-                } else /* if ($rolePartParts[0] === 'max') */ {
+                } else /* if ($ruleParts[0] === 'max') */ {
                     $validatesAttribute = Closure::fromCallable([static::class, 'validateMax']);
                 }
-                $validatesAttributes[$rolePart] = $validatesAttribute;
-                $validatesAttributesArgs[$rolePart] = [trim($rolePartParts[1])];
-            } elseif ($rolePart == 'bail') {
+                $validatesAttributes[$rule] = $validatesAttribute;
+                $validatesAttributesArgs[$rule] = $ruleArgs;
+            } elseif ($rule == 'bail') {
                 $flags |= static::FLAG_BAIL;
             } else {
-                throw new InvalidArgumentException("Unknown role part '{$rolePart}'");
+                throw new InvalidArgumentException("Unknown rule part '{$rule}'");
             }
         }
+
         $this->flags = $flags;
         $this->validatesAttributes = $validatesAttributes;
-        $this->validatesAttributesArgsMap = $validatesAttributesArgs;
+        $this->validatesAttributesArgs = $validatesAttributesArgs;
     }
 
     public function isDefinitelyRequired(): bool
@@ -96,7 +110,7 @@ class ValidationRuleset
         }
 
         $errors = [];
-        $argsMap = $this->validatesAttributesArgsMap;
+        $argsMap = $this->validatesAttributesArgs;
         foreach ($this->validatesAttributes as $name => $attribute) {
             $valid = $attribute($data, ...($argsMap[$name] ?? []));
             if (!$valid) {
@@ -108,6 +122,40 @@ class ValidationRuleset
         }
 
         return $errors;
+    }
+
+    protected static function getHashOfRuleMap(array $ruleMap): string
+    {
+        $hashSlots = [];
+        ksort($ruleMap);
+        foreach ($ruleMap as $rule => $ruleArgs) {
+            if ($ruleArgs === []) {
+                $hashSlots[] = $rule;
+            } else {
+                $hashSlots[] = sprintf("%s:%s", $rule, implode(', ', $ruleArgs));
+            }
+        }
+        return implode('|', $hashSlots);
+    }
+
+    protected static function convertRuleStringToRuleMap(string $ruleString): array
+    {
+        $rules = array_map('trim', explode('|', $ruleString));
+        $ruleMap = [];
+        foreach ($rules as $rule) {
+            $ruleParts = explode(':', $rule, 2);
+            $rule = trim($ruleParts[0]);
+            if (isset($ruleMap[$rule])) {
+                throw new InvalidArgumentException("Duplicated rule '{$rule}' in ruleset '{$ruleString}'");
+            }
+            if (($ruleParts[1] ?? '') !== '') {
+                $ruleArgs = array_map('trim', explode(',', $ruleParts[1]));
+                $ruleMap[$rule] = $ruleArgs;
+            } else {
+                $ruleMap[$rule] = [];
+            }
+        }
+        return $ruleMap;
     }
 
     protected static function validateRequired(mixed $value): bool

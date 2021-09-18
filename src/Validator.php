@@ -26,30 +26,11 @@ class Validator
 
     public function __construct(array $rules)
     {
-        $maxIndex = 0;
         $validationPairs = [];
         foreach ($rules as $pattern => $ruleString) {
-            $ruleset = new ValidationRuleset($ruleString);
-            /* explode pattern and trim all parts of pattern */
-            $patternParts = array_map('trim', explode('.', $pattern));
-            /* Check if pattern is valid */
-            if (count($patternParts) === 0) {
-                throw new InvalidArgumentException('Unable to solve empty pattern');
-            }
-            foreach ($patternParts as $part) {
-                if ($part === '') {
-                    throw new InvalidArgumentException("Invalid pattern '{$pattern}'");
-                }
-            }
-            /* re-implode pattern to make sure it's valid and clear */
-            $pattern = implode('.', $patternParts);
-            /* create validation pair */
-            $index = count($patternParts) - 1;
-            if ($index > $maxIndex) {
-                $maxIndex = $index;
-            }
+            $ruleset = ValidationRuleset::make($ruleString);
             $validationPairs[] = new ValidationPair(
-                $pattern, $patternParts, $ruleset
+                $pattern, $ruleset
             );
         }
         $this->validationPairs = $validationPairs;
