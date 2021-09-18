@@ -1,0 +1,27 @@
+{
+    "name": "kk/validator",
+    "type": "library",
+    "license": "MIT",
+    "keywords": [
+        "validator",
+        "validation",
+        "kk"
+    ],
+    "description": "KK validator",
+    "minimum-stability": "dev",
+    "autoload": {
+        "classmap": [
+            "src/Validator.php"
+        ],
+        "psr-4": {
+            "KK\\Validator\\": "src"
+        }
+    },
+    "require": {
+        "php": ">=8.0",
+        "ext-mbstring": "*"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
