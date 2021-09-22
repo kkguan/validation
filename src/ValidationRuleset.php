@@ -46,8 +46,8 @@ class ValidationRuleset
     /** @var int base flags */
     protected int $flags;
 
-    /** @var ValidationAttribute[] */
-    protected array $validationAttributes;
+    /** @var ValidationRule[] */
+    protected array $rules;
 
     /** @var static[] */
     protected static array $pool = [];
@@ -65,7 +65,7 @@ class ValidationRuleset
     protected function __construct(array $ruleMap)
     {
         $flags = 0;
-        $validationAttributes = [];
+        $rules = [];
 
         foreach ($ruleMap as $rule => $ruleArgs) {
             if ($rule == 'sometimes') {
@@ -73,9 +73,9 @@ class ValidationRuleset
             } elseif ($rule == 'required') {
                 $flags |= static::FLAG_REQUIRED;
                 if (isset($ruleMap['string'])) {
-                    $validationAttributes[] = ValidationAttribute::make('required', static::getClosure('validateRequiredString'));
+                    $rules[] = ValidationRule::make('required', static::getClosure('validateRequiredString'));
                 } else {
-                    $validationAttributes[] = ValidationAttribute::make('required', static::getClosure('validateRequired'));
+                    $rules[] = ValidationRule::make('required', static::getClosure('validateRequired'));
                 }
             } elseif ($rule == 'nullable') {
                 $flags |= static::FLAG_NULLABLE;
@@ -83,16 +83,16 @@ class ValidationRuleset
                 if (isset($ruleMap['array'])) {
                     throw new InvalidArgumentException("Rule 'numeric' conflicts with 'array'");
                 }
-                $validationAttributes[] = ValidationAttribute::make('numeric', static::getClosure('validateNumeric'));
+                $rules[] = ValidationRule::make('numeric', static::getClosure('validateNumeric'));
             } elseif ($rule == 'integer') {
-                $validationAttributes[] = ValidationAttribute::make('integer', static::getClosure('validateInteger'));
+                $rules[] = ValidationRule::make('integer', static::getClosure('validateInteger'));
             } elseif ($rule == 'string') {
                 if (isset($ruleMap['array'])) {
                     throw new InvalidArgumentException("Rule 'string' conflicts with 'array'");
                 }
-                $validationAttributes[] = ValidationAttribute::make('string', static::getClosure('validateString'));
+                $rules[] = ValidationRule::make('string', static::getClosure('validateString'));
             } elseif ($rule == 'array') {
-                $validationAttributes[] = ValidationAttribute::make('array', static::getClosure('validateArray'));
+                $rules[] = ValidationRule::make('array', static::getClosure('validateArray'));
             } elseif ($rule === 'min' || $rule === 'max') {
                 if (count($ruleArgs) !== 1) {
                     throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
@@ -104,13 +104,13 @@ class ValidationRuleset
                 $name = "{$rule}:{$ruleArgs[0]}";
                 $methodPart = $rule === 'min' ? 'Min' : 'Max';
                 if (isset($ruleMap['integer'])) {
-                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}Integer"), $ruleArgs);
+                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}Integer"), $ruleArgs);
                 } elseif (isset($ruleMap['numeric'])) {
-                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}Numeric"), $ruleArgs);
+                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}Numeric"), $ruleArgs);
                 } elseif (isset($ruleMap['string'])) {
-                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}String"), $ruleArgs);
+                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}String"), $ruleArgs);
                 } else {
-                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs);
+                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs);
                 }
             } elseif ($rule == 'bail') {
                 $flags |= static::FLAG_BAIL;
@@ -120,7 +120,7 @@ class ValidationRuleset
         }
 
         $this->flags = $flags;
-        $this->validationAttributes = $validationAttributes;
+        $this->rules = $rules;
     }
 
     public function isDefinitelyRequired(): bool
@@ -139,11 +139,11 @@ class ValidationRuleset
 
         $errors = [];
 
-        foreach ($this->validationAttributes as $attribute) {
-            $closure = $attribute->closure;
-            $valid = $closure($data, ...$attribute->args);
+        foreach ($this->rules as $rule) {
+            $closure = $rule->closure;
+            $valid = $closure($data, ...$rule->args);
             if (!$valid) {
-                $errors[] = $attribute->name;
+                $errors[] = $rule->name;
                 if ($this->flags & static::FLAG_BAIL) {
                     break;
                 }

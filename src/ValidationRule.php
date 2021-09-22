@@ -8,7 +8,7 @@ use ReflectionException;
 use ReflectionFunction;
 use function serialize;
 
-class ValidationAttribute
+class ValidationRule
 {
     /** @var static[] */
     protected static array $pool = [];
