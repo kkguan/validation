@@ -2,6 +2,7 @@
 
 namespace KK;
 
+use KK\Validator\ValidationException;
 use KK\Validator\ValidationPair;
 use KK\Validator\ValidationRuleset;
 use function array_key_exists;
@@ -38,6 +39,17 @@ class Validator
         $this->errors = [];
 
         return $this->validRecursive($data, $this->validationPairs);
+    }
+
+    /** @throws ValidationException */
+    public function validate(array $data): array
+    {
+        $result = $this->valid($data);
+        if (!empty($this->errors)) {
+            throw new ValidationException($this->errors);
+        }
+
+        return $result;
     }
 
     /**
