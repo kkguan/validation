@@ -81,7 +81,7 @@ class Validator
             $currentPatternPart = $patternParts[$validationLevel - 1];
             if ($currentPatternPart === '*') {
                 foreach ($data as $key => $value) {
-                    $errors = $ruleset->validate($value);
+                    $errors = $ruleset->check($value);
                     if ($errors) {
                         $this->recordErrors($key, $errors);
                         $invalid = true;
@@ -97,7 +97,7 @@ class Validator
                     continue;
                 }
                 $value = $data[$currentPatternPart];
-                $errors = $ruleset->validate($value);
+                $errors = $ruleset->check($value);
                 if ($errors) {
                     $this->recordErrors($currentPatternPart, $errors);
                     $invalid = true;

@@ -5,6 +5,7 @@ namespace KK\Validator;
 use Closure;
 use InvalidArgumentException;
 use SplFileInfo;
+use SplPriorityQueue;
 use function array_map;
 use function count;
 use function ctype_space;
@@ -32,68 +33,85 @@ class ValidationRuleset
     /** @var int base flags */
     protected int $flags;
 
-    /** @var Closure[] */
-    protected array $validatesAttributes = [];
-    protected array $validatesAttributesArgs = [];
+    /** @var ValidatesAttribute[] */
+    protected array $validatesAttributes;
 
+    /** @var static[] */
     protected static array $pool = [];
+
+    /** @var Closure[] */
+    protected static array $closureCache = [];
 
     public static function make(string $ruleString): static
     {
         $ruleMap = static::convertRuleStringToRuleMap($ruleString);
         $hash = static::getHashOfRuleMap($ruleMap);
-        if (!isset(static::$pool[$hash])) {
-            $ruleset = static::$pool[$hash] = new static($ruleMap);
-        } else {
-            $ruleset = static::$pool[$hash];
-        }
-        return $ruleset;
+        return static::$pool[$hash] ?? (static::$pool[$hash] = new static($ruleMap));
     }
 
     protected function __construct(array $ruleMap)
     {
         $flags = 0;
-        $validatesAttributes = [];
-        $validatesAttributesArgs = [];
+        $validatesAttributeQueue = new SplPriorityQueue();
 
         foreach ($ruleMap as $rule => $ruleArgs) {
-            $rule = strtolower($rule);
             if ($rule == 'sometimes') {
                 $flags |= static::FLAG_SOMETIMES;
             } elseif ($rule == 'required') {
                 $flags |= static::FLAG_REQUIRED;
-                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateRequired']);
+                if (isset($ruleMap['string'])) {
+                    $validatesAttributeQueue->insert(ValidatesAttribute::make('required', static::getClosure('validateRequiredString')), 10);
+                } else {
+                    $validatesAttributeQueue->insert(ValidatesAttribute::make('required', static::getClosure('validateRequired')), 10);
+                }
             } elseif ($rule == 'nullable') {
                 $flags |= static::FLAG_NULLABLE;
             } elseif ($rule == 'numeric') {
-                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateNumeric']);
+                if (isset($ruleMap['array'])) {
+                    throw new InvalidArgumentException("Rule 'numeric' conflicts with 'array'");
+                }
+                $validatesAttributeQueue->insert(ValidatesAttribute::make('numeric', static::getClosure('validateNumeric')), 100);
             } elseif ($rule == 'integer') {
-                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateInteger']);
+                $validatesAttributeQueue->insert(ValidatesAttribute::make('integer', static::getClosure('validateInteger')), 100);
             } elseif ($rule == 'string') {
-                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateString']);
+                if (isset($ruleMap['array'])) {
+                    throw new InvalidArgumentException("Rule 'string' conflicts with 'array'");
+                }
+                $validatesAttributeQueue->insert(ValidatesAttribute::make('string', static::getClosure('validateString')), 100);
             } elseif ($rule == 'array') {
-                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateArray']);
+                $validatesAttributeQueue->insert(ValidatesAttribute::make('array', static::getClosure('validateArray')), 100);
             } elseif ($rule === 'min' || $rule === 'max') {
                 if (count($ruleArgs) !== 1) {
-                    throw new InvalidArgumentException("Rule {$rule} require 1 parameter");
+                    throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
                 }
-                if ($rule === 'min') {
-                    $validatesAttribute = Closure::fromCallable([static::class, 'validateMin']);
-                } else /* if ($ruleParts[0] === 'max') */ {
-                    $validatesAttribute = Closure::fromCallable([static::class, 'validateMax']);
+                if (!is_numeric($ruleArgs[0])) {
+                    throw new InvalidArgumentException("Rule '{$rule}' require numeric parameters");
                 }
-                $validatesAttributes[$rule] = $validatesAttribute;
-                $validatesAttributesArgs[$rule] = $ruleArgs;
+                $ruleArgs[0] += 0;
+                $name = "{$rule}:{$ruleArgs[0]}";
+                $methodPart = $rule === 'min' ? 'Min' : 'Max';
+                if (isset($ruleMap['integer'])) {
+                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}Integer"), $ruleArgs), 1);
+                } elseif (isset($ruleMap['numeric'])) {
+                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}Numeric"), $ruleArgs), 1);
+                } elseif (isset($ruleMap['string'])) {
+                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}String"), $ruleArgs), 1);
+                } else {
+                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs), 1);
+                }
             } elseif ($rule == 'bail') {
                 $flags |= static::FLAG_BAIL;
             } else {
                 throw new InvalidArgumentException("Unknown rule part '{$rule}'");
             }
         }
+        $validatesAttributes = [];
+        while (!$validatesAttributeQueue->isEmpty()) {
+            $validatesAttributes[] = $validatesAttributeQueue->extract();
+        }
 
         $this->flags = $flags;
         $this->validatesAttributes = $validatesAttributes;
-        $this->validatesAttributesArgs = $validatesAttributesArgs;
     }
 
     public function isDefinitelyRequired(): bool
@@ -104,18 +122,19 @@ class ValidationRuleset
     /**
      * @return string[] Error attribute names
      */
-    public function validate(mixed $data): array
+    public function check(mixed $data): array
     {
         if (($this->flags & static::FLAG_NULLABLE) && $data === null) {
             return [];
         }
 
         $errors = [];
-        $argsMap = $this->validatesAttributesArgs;
-        foreach ($this->validatesAttributes as $name => $attribute) {
-            $valid = $attribute($data, ...($argsMap[$name] ?? []));
+
+        foreach ($this->validatesAttributes as $attribute) {
+            $closure = $attribute->closure;
+            $valid = $closure($data, ...$attribute->args);
             if (!$valid) {
-                $errors[] = $name;
+                $errors[] = $attribute->name;
                 if ($this->flags & static::FLAG_BAIL) {
                     break;
                 }
@@ -145,7 +164,7 @@ class ValidationRuleset
         $ruleMap = [];
         foreach ($rules as $rule) {
             $ruleParts = explode(':', $rule, 2);
-            $rule = trim($ruleParts[0]);
+            $rule = strtolower(trim($ruleParts[0]));
             if (isset($ruleMap[$rule])) {
                 throw new InvalidArgumentException("Duplicated rule '{$rule}' in ruleset '{$ruleString}'");
             }
@@ -157,6 +176,12 @@ class ValidationRuleset
             }
         }
         return $ruleMap;
+    }
+
+    protected static function getClosure(string $method): Closure
+    {
+        return static::$closureCache[$method] ??
+            (static::$closureCache[$method] = Closure::fromCallable([static::class, $method]));
     }
 
     protected static function validateRequired(mixed $value): bool
@@ -177,14 +202,27 @@ class ValidationRuleset
         return true;
     }
 
-    protected static function validateNumeric(mixed $value): bool
+    protected static function validateRequiredString(mixed $value): bool
     {
-        return is_numeric($value);
+        return $value !== '' && !ctype_space($value);
     }
 
-    protected static function validateInteger(mixed $value): bool
+    protected static function validateNumeric(mixed &$value): bool
     {
-        return filter_var($value, FILTER_VALIDATE_INT) !== false;
+        if (!is_numeric($value)) {
+            return false;
+        }
+        $value += 0;
+        return true;
+    }
+
+    protected static function validateInteger(mixed &$value): bool
+    {
+        if (filter_var($value, FILTER_VALIDATE_INT) === false) {
+            return false;
+        }
+        $value = (int) $value;
+        return true;
     }
 
     protected static function validateString(mixed $value): bool
@@ -213,15 +251,45 @@ class ValidationRuleset
         return $length;
     }
 
-    protected static function validateMin(mixed $value, string $min): bool
+    protected static function validateMin(mixed $value, int|float $min): bool
     {
         // TODO: file min support b, kb, mb, gb ...
         return static::getLength($value) >= $min;
     }
 
-    protected static function validateMax(mixed $value, $max): bool
+    protected static function validateMax(mixed $value, int|float $max): bool
     {
         // TODO: file max support b, kb, mb, gb ...
         return static::getLength($value) <= $max;
+    }
+
+    protected static function validateMinInteger(int $value, int|float $min): bool
+    {
+        return $value >= $min;
+    }
+
+    protected static function validateMaxInteger(int $value, int|float $max): bool
+    {
+        return $value < $max;
+    }
+
+    protected static function validateMinNumeric(int|float $value, int|float $min): bool
+    {
+        return $value >= $min;
+    }
+
+    protected static function validateMaxNumeric(int|float $value, int|float $max): bool
+    {
+        return $value < $max;
+    }
+
+    protected static function validateMinString(string $value, int|float $min): bool
+    {
+        return mb_strlen($value) >= $min;
+    }
+
+    protected static function validateMaxString(string $value, int|float $max): bool
+    {
+        return mb_strlen($value) < $max;
     }
 }
