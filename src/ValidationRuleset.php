@@ -30,11 +30,24 @@ class ValidationRuleset
     protected const FLAG_NULLABLE = 1 << 2;
     protected const FLAG_BAIL = 1 << 3;
 
+    protected const PRIORITY_MAP = [
+        'required' => 10,
+        'numeric' => 100,
+        'integer' => 100,
+        'string' => 100,
+        'array' => 100,
+        'min' => 1,
+        'max' => 1,
+        'sometimes' => 0,
+        'nullable' => 0,
+        'bail' => 0,
+    ];
+
     /** @var int base flags */
     protected int $flags;
 
-    /** @var ValidatesAttribute[] */
-    protected array $validatesAttributes;
+    /** @var ValidationAttribute[] */
+    protected array $validationAttributes;
 
     /** @var static[] */
     protected static array $pool = [];
@@ -52,7 +65,7 @@ class ValidationRuleset
     protected function __construct(array $ruleMap)
     {
         $flags = 0;
-        $validatesAttributeQueue = new SplPriorityQueue();
+        $validationAttributes = [];
 
         foreach ($ruleMap as $rule => $ruleArgs) {
             if ($rule == 'sometimes') {
@@ -60,9 +73,9 @@ class ValidationRuleset
             } elseif ($rule == 'required') {
                 $flags |= static::FLAG_REQUIRED;
                 if (isset($ruleMap['string'])) {
-                    $validatesAttributeQueue->insert(ValidatesAttribute::make('required', static::getClosure('validateRequiredString')), 10);
+                    $validationAttributes[] = ValidationAttribute::make('required', static::getClosure('validateRequiredString'));
                 } else {
-                    $validatesAttributeQueue->insert(ValidatesAttribute::make('required', static::getClosure('validateRequired')), 10);
+                    $validationAttributes[] = ValidationAttribute::make('required', static::getClosure('validateRequired'));
                 }
             } elseif ($rule == 'nullable') {
                 $flags |= static::FLAG_NULLABLE;
@@ -70,16 +83,16 @@ class ValidationRuleset
                 if (isset($ruleMap['array'])) {
                     throw new InvalidArgumentException("Rule 'numeric' conflicts with 'array'");
                 }
-                $validatesAttributeQueue->insert(ValidatesAttribute::make('numeric', static::getClosure('validateNumeric')), 100);
+                $validationAttributes[] = ValidationAttribute::make('numeric', static::getClosure('validateNumeric'));
             } elseif ($rule == 'integer') {
-                $validatesAttributeQueue->insert(ValidatesAttribute::make('integer', static::getClosure('validateInteger')), 100);
+                $validationAttributes[] = ValidationAttribute::make('integer', static::getClosure('validateInteger'));
             } elseif ($rule == 'string') {
                 if (isset($ruleMap['array'])) {
                     throw new InvalidArgumentException("Rule 'string' conflicts with 'array'");
                 }
-                $validatesAttributeQueue->insert(ValidatesAttribute::make('string', static::getClosure('validateString')), 100);
+                $validationAttributes[] = ValidationAttribute::make('string', static::getClosure('validateString'));
             } elseif ($rule == 'array') {
-                $validatesAttributeQueue->insert(ValidatesAttribute::make('array', static::getClosure('validateArray')), 100);
+                $validationAttributes[] = ValidationAttribute::make('array', static::getClosure('validateArray'));
             } elseif ($rule === 'min' || $rule === 'max') {
                 if (count($ruleArgs) !== 1) {
                     throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
@@ -91,27 +104,23 @@ class ValidationRuleset
                 $name = "{$rule}:{$ruleArgs[0]}";
                 $methodPart = $rule === 'min' ? 'Min' : 'Max';
                 if (isset($ruleMap['integer'])) {
-                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}Integer"), $ruleArgs), 1);
+                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}Integer"), $ruleArgs);
                 } elseif (isset($ruleMap['numeric'])) {
-                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}Numeric"), $ruleArgs), 1);
+                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}Numeric"), $ruleArgs);
                 } elseif (isset($ruleMap['string'])) {
-                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}String"), $ruleArgs), 1);
+                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}String"), $ruleArgs);
                 } else {
-                    $validatesAttributeQueue->insert(ValidatesAttribute::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs), 1);
+                    $validationAttributes[] = ValidationAttribute::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs);
                 }
             } elseif ($rule == 'bail') {
                 $flags |= static::FLAG_BAIL;
             } else {
-                throw new InvalidArgumentException("Unknown rule part '{$rule}'");
+                throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
-        }
-        $validatesAttributes = [];
-        while (!$validatesAttributeQueue->isEmpty()) {
-            $validatesAttributes[] = $validatesAttributeQueue->extract();
         }
 
         $this->flags = $flags;
-        $this->validatesAttributes = $validatesAttributes;
+        $this->validationAttributes = $validationAttributes;
     }
 
     public function isDefinitelyRequired(): bool
@@ -130,7 +139,7 @@ class ValidationRuleset
 
         $errors = [];
 
-        foreach ($this->validatesAttributes as $attribute) {
+        foreach ($this->validationAttributes as $attribute) {
             $closure = $attribute->closure;
             $valid = $closure($data, ...$attribute->args);
             if (!$valid) {
@@ -161,19 +170,27 @@ class ValidationRuleset
     protected static function convertRuleStringToRuleMap(string $ruleString): array
     {
         $rules = array_map('trim', explode('|', $ruleString));
+        $ruleQueue = new SplPriorityQueue();
         $ruleMap = [];
         foreach ($rules as $rule) {
             $ruleParts = explode(':', $rule, 2);
             $rule = strtolower(trim($ruleParts[0]));
-            if (isset($ruleMap[$rule])) {
-                throw new InvalidArgumentException("Duplicated rule '{$rule}' in ruleset '{$ruleString}'");
+            if (!isset(static::PRIORITY_MAP[$rule])) {
+                throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
             if (($ruleParts[1] ?? '') !== '') {
                 $ruleArgs = array_map('trim', explode(',', $ruleParts[1]));
-                $ruleMap[$rule] = $ruleArgs;
             } else {
-                $ruleMap[$rule] = [];
+                $ruleArgs = [];
             }
+            $ruleQueue->insert([$rule, $ruleArgs], static::PRIORITY_MAP[$rule]);
+        }
+        while (!$ruleQueue->isEmpty()) {
+            [$rule, $ruleArgs] = $ruleQueue->extract();
+            if (isset($ruleMap[$rule])) {
+                throw new InvalidArgumentException("Duplicated rule '{$rule}' in ruleset '{$ruleString}'");
+            }
+            $ruleMap[$rule] = $ruleArgs;
         }
         return $ruleMap;
     }

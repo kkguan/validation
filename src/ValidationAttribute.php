@@ -8,7 +8,7 @@ use ReflectionException;
 use ReflectionFunction;
 use function serialize;
 
-class ValidatesAttribute
+class ValidationAttribute
 {
     /** @var static[] */
     protected static array $pool = [];
@@ -18,7 +18,7 @@ class ValidatesAttribute
         try {
             $methodName = (new ReflectionFunction($closure))->getName();
         } catch (ReflectionException $exception) {
-            throw new InvalidArgumentException('Invalid validates attribute closure');
+            throw new InvalidArgumentException('Invalid validation attribute closure');
         }
         $hash = $args === [] ? $methodName : $methodName . ':' . serialize($args);
         return static::$pool[$hash] ?? (static::$pool[$hash] = new static($name, $closure, $args));
