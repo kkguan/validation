@@ -7,6 +7,7 @@ use InvalidArgumentException;
 use SplFileInfo;
 use function array_map;
 use function count;
+use function ctype_space;
 use function explode;
 use function filter_var;
 use function implode;
@@ -163,7 +164,7 @@ class ValidationRuleset
         if (is_null($value)) {
             return false;
         }
-        if (is_string($value) && trim($value) === '') {
+        if (is_string($value) && ($value === '' || ctype_space($value))) {
             return false;
         }
         if (is_countable($value) && count($value) < 1) {
