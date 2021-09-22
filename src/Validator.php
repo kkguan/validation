@@ -114,22 +114,6 @@ class Validator
             }
         }
 
-        foreach ($deeperValidationPairsMap as $deeperPatternPart => $deeperValidationPairs) {
-            $value = $data[$deeperPatternPart] ?? null;
-            if (!is_array($value)) {
-                /* required but not found | not definitely required | nullable */
-                continue;
-            }
-            $nextDir = $currentDir;
-            $nextDir[] = $deeperPatternPart;
-            $ret = $this->validRecursive($value, $deeperValidationPairs, $nextDir);
-            if ($ret !== []) {
-                $data[$deeperPatternPart] = $ret;
-            } else {
-                unset($data[$deeperPatternPart]);
-            }
-        }
-
         if ($wildcardValidationPairs !== []) {
             foreach ($data as $key => $value) {
                 $nextDir = $currentDir;
@@ -148,9 +132,34 @@ class Validator
             }
         }
 
+        if (!$invalid) {
+            /* go deeper */
+            foreach ($deeperValidationPairsMap as $deeperPatternPart => $deeperValidationPairs) {
+                $value = $data[$deeperPatternPart] ?? null;
+                if ($value === null) {
+                    /* required but not found | not definitely required | nullable */
+                    continue;
+                }
+                if (!is_array($value)) {
+                    $this->recordError($deeperPatternPart, 'array');
+                    $invalid = true;
+                    continue;
+                }
+                $nextDir = $currentDir;
+                $nextDir[] = $deeperPatternPart;
+                $ret = $this->validRecursive($value, $deeperValidationPairs, $nextDir);
+                if ($ret !== []) {
+                    $data[$deeperPatternPart] = $ret;
+                } else {
+                    unset($data[$deeperPatternPart]);
+                }
+            }
+        }
+
         if ($invalid) {
             return [];
         }
+
         return $data;
     }
 
