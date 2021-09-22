@@ -1,20 +1,17 @@
 {
-    "name": "kk/validator",
+    "name": "kk/validation",
     "type": "library",
     "license": "MIT",
     "keywords": [
-        "validator",
         "validation",
+        "validator",
         "kk"
     ],
-    "description": "KK validator",
+    "description": "KK validation library",
     "minimum-stability": "dev",
     "autoload": {
-        "classmap": [
-            "src/Validator.php"
-        ],
         "psr-4": {
-            "KK\\Validator\\": "src"
+            "KK\\Validation\\": "src"
         }
     },
     "require": {

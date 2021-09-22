@@ -1,10 +1,7 @@
 <?php
 
-namespace KK;
+namespace KK\Validation;
 
-use KK\Validator\ValidationException;
-use KK\Validator\ValidationPair;
-use KK\Validator\ValidationRuleset;
 use function array_key_exists;
 use function array_merge;
 use function count;

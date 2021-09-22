@@ -1,6 +1,6 @@
 <?php
 
-namespace KK\Validator;
+namespace KK\Validation;
 
 use InvalidArgumentException;
 use function array_map;
