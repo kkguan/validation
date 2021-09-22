@@ -153,11 +153,12 @@ class Validator
     protected function recordErrors(string $key, array $errors): void
     {
         $fullPath = static::generateFullPath($this->currentDir, $key);
-        $this->errors[$fullPath] = array_merge($this->errors[$fullPath], $errors);
+        $this->errors[$fullPath] = array_merge($this->errors[$fullPath] ?? [], $errors);
     }
 
     protected static function generateFullPath(array $dir, string $key): string
     {
-        return implode('.', $dir) . ".{$key}";
+        $path = [...$dir, $key];
+        return implode('.', $path);
     }
 }
