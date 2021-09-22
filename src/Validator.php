@@ -2,14 +2,11 @@
 
 namespace KK;
 
-use InvalidArgumentException;
 use KK\Validator\ValidationPair;
 use KK\Validator\ValidationRuleset;
 use function array_key_exists;
-use function array_map;
 use function array_merge;
 use function count;
-use function explode;
 use function implode;
 use function is_array;
 
