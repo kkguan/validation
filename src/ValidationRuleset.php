@@ -66,8 +66,8 @@ class ValidationRuleset
                 $flags |= static::FLAG_NULLABLE;
             } elseif ($rule == 'numeric') {
                 $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateNumeric']);
-            } elseif ($rule == 'int' || $rule == 'integer') {
-                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateInt']);
+            } elseif ($rule == 'integer') {
+                $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateInteger']);
             } elseif ($rule == 'string') {
                 $validatesAttributes[$rule] = Closure::fromCallable([static::class, 'validateString']);
             } elseif ($rule == 'array') {
@@ -181,7 +181,7 @@ class ValidationRuleset
         return is_numeric($value);
     }
 
-    protected static function validateInt(mixed $value): bool
+    protected static function validateInteger(mixed $value): bool
     {
         return filter_var($value, FILTER_VALIDATE_INT) !== false;
     }
