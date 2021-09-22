@@ -58,16 +58,18 @@ class Validator
     protected function validRecursive(array $data, array $validationPairs, array $currentDir = []): array
     {
         $this->currentDir = $currentDir;
+        $currentLevel = count($currentDir);
 
         $deeperValidationPairsMap = [];
         $wildcardValidationPairs = [];
         $invalid = false;
 
         foreach ($validationPairs as $validationPair) {
-            $patternParts = $validationPair->getPatternParts();
-            $diffLevel = count($patternParts) - count($currentDir) - 1;
+            $patternParts = $validationPair->patternParts;
+            $validationLevel = count($patternParts);
+            $diffLevel = $validationLevel - $currentLevel - 1;
             if ($diffLevel !== 0) {
-                $deeperPatternPart = $patternParts[count($currentDir)];
+                $deeperPatternPart = $patternParts[$currentLevel];
                 if ($deeperPatternPart !== '*') {
                     $deeperValidationPairsMap[$deeperPatternPart][] = $validationPair;
                 } else {
@@ -75,8 +77,8 @@ class Validator
                 }
                 continue;
             }
-            $ruleset = $validationPair->getRuleset();
-            $currentPatternPart = $patternParts[count($patternParts) - 1];
+            $ruleset = $validationPair->ruleset;
+            $currentPatternPart = $patternParts[$validationLevel - 1];
             if ($currentPatternPart === '*') {
                 foreach ($data as $key => $value) {
                     $errors = $ruleset->validate($value);

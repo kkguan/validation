@@ -10,12 +10,11 @@ use function implode;
 
 class ValidationPair
 {
-    protected string $pattern;
-    protected array $patternParts;
+    public array $patternParts;
 
     public function __construct(
         string $pattern,
-        protected ValidationRuleset $ruleset
+        public ValidationRuleset $ruleset
     ) {
         /* explode pattern and trim all parts of pattern */
         $patternParts = array_map('trim', explode('.', $pattern));
@@ -29,35 +28,5 @@ class ValidationPair
             }
         }
         $this->patternParts = $patternParts;
-    }
-
-    /**
-     * @return string
-     */
-    public function getPattern(): string
-    {
-        /* lazy loading, useless for the time being */
-        if ($this->pattern === null) {
-            /* re-implode pattern here
-             * to make sure it's valid and clear */
-            $this->pattern = implode('.', $this->patternParts);
-        }
-        return $this->pattern;
-    }
-
-    /**
-     * @return array
-     */
-    public function getPatternParts(): array
-    {
-        return $this->patternParts;
-    }
-
-    /**
-     * @return ValidationRuleset
-     */
-    public function getRuleset(): ValidationRuleset
-    {
-        return $this->ruleset;
     }
 }
