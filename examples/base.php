@@ -124,3 +124,13 @@ try {
 } catch (ValidationException) {
     echo "Never here\n";
 }
+
+$validator = new Validator([
+    'foo' => 'string|max:255'
+]);
+try {
+    $validator->validate(['foo' => []]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: string
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}

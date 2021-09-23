@@ -29,7 +29,6 @@ class ValidationRuleset
     protected const FLAG_SOMETIMES = 1 << 0;
     protected const FLAG_REQUIRED = 1 << 1;
     protected const FLAG_NULLABLE = 1 << 2;
-    protected const FLAG_BAIL = 1 << 3;
 
     protected const PRIORITY_MAP = [
         'required' => 10,
@@ -113,9 +112,7 @@ class ValidationRuleset
                 } else {
                     $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs);
                 }
-            } elseif ($rule == 'bail') {
-                $flags |= static::FLAG_BAIL;
-            } else {
+            } elseif ($rule != 'bail') { /* compatibility */
                 throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
         }
@@ -145,9 +142,13 @@ class ValidationRuleset
             $valid = $closure($data, ...$rule->args);
             if (!$valid) {
                 $errors[] = $rule->name;
-                if ($this->flags & static::FLAG_BAIL) {
-                    break;
-                }
+                /* Always bail here, for example:
+                 * if we have a rule like `integer|max:255`,
+                 * then user input a string `x`, it's not even an integer,
+                 * continue to check its' length is meaningless,
+                 * in Laravel validation, it may violate `max:255` when
+                 * string length is longer than 255, how fool it is. */
+                break;
             }
         }
 
