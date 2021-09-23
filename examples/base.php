@@ -11,12 +11,12 @@ $validator = new Validator([
 ]);
 try {
     $validator->validate(['type' => 'foo']);
-} catch (ValidationException $e) {
+} catch (ValidationException) {
     echo "Never here\n";
 }
 try {
     $validator->validate([]);
-} catch (ValidationException $e) {
+} catch (ValidationException) {
     echo "Never here\n";
 }
 try {
@@ -75,7 +75,7 @@ $validator = new Validator([
 ]);
 try {
     $validator->validate(['0', '1', '2', '3']);
-} catch (ValidationException $e) {
+} catch (ValidationException) {
     echo "Never here\n";
 }
 try {
@@ -102,4 +102,25 @@ try {
 } catch (ValidationException $e) {
     // Attribute 'foo' violates the following rules: array
     echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+
+$validator = new Validator([
+    '*.*.*' => 'integer'
+]);
+try {
+    $validator->validate(['foo' => ['bar' => 'not array']]);
+} catch (ValidationException $e) {
+    // Attribute 'foo.bar' violates the following rules: array
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => ['bar' => ['baz']]]);
+} catch (ValidationException $e) {
+    // Attribute 'foo.bar.0' violates the following rules: integer
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => ['bar' => ['1']]]);
+} catch (ValidationException) {
+    echo "Never here\n";
 }
