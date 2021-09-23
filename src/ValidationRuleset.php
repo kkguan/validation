@@ -22,6 +22,7 @@ use function mb_strlen;
 use function sprintf;
 use function strtolower;
 use function trim;
+use function var_dump;
 
 class ValidationRuleset
 {
@@ -287,7 +288,7 @@ class ValidationRuleset
 
     protected static function validateMaxInteger(int $value, int|float $max): bool
     {
-        return $value < $max;
+        return $value <= $max;
     }
 
     protected static function validateMinNumeric(int|float $value, int|float $min): bool
@@ -297,7 +298,7 @@ class ValidationRuleset
 
     protected static function validateMaxNumeric(int|float $value, int|float $max): bool
     {
-        return $value < $max;
+        return $value <= $max;
     }
 
     protected static function validateMinString(string $value, int|float $min): bool
@@ -307,6 +308,6 @@ class ValidationRuleset
 
     protected static function validateMaxString(string $value, int|float $max): bool
     {
-        return mb_strlen($value) < $max;
+        return mb_strlen($value) <= $max;
     }
 }
