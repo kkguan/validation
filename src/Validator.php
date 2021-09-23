@@ -73,6 +73,7 @@ class Validator
         $wildcardValidationPairs = [];
         $invalid = false;
 
+        /* Filter out and verify the rules that match the current level */
         foreach ($validationPairs as $validationPair) {
             $patternParts = $validationPair->patternParts;
             $validationLevel = count($patternParts);
@@ -114,6 +115,29 @@ class Validator
             }
         }
 
+        /* go deeper first, some invalid data will be removed */
+        foreach ($deeperValidationPairsMap as $deeperPatternPart => $deeperValidationPairs) {
+            $value = $data[$deeperPatternPart] ?? null;
+            if ($value === null) {
+                /* required but not found | not definitely required | nullable */
+                continue;
+            }
+            if (!is_array($value)) {
+                $this->recordError($deeperPatternPart, 'array');
+                $invalid = true;
+                continue;
+            }
+            $nextDir = $currentDir;
+            $nextDir[] = $deeperPatternPart;
+            $ret = $this->validRecursive($value, $deeperValidationPairs, $nextDir);
+            if ($ret !== []) {
+                $data[$deeperPatternPart] = $ret;
+            } else {
+                unset($data[$deeperPatternPart]);
+            }
+        }
+
+        /* Apply wildcard rule after deeper check, data was cleaned up */
         if ($wildcardValidationPairs !== []) {
             foreach ($data as $key => $value) {
                 $nextDir = $currentDir;
@@ -128,30 +152,6 @@ class Validator
                     $data[$key] = $ret;
                 } else {
                     unset($data[$key]);
-                }
-            }
-        }
-
-        if (!$invalid) {
-            /* go deeper */
-            foreach ($deeperValidationPairsMap as $deeperPatternPart => $deeperValidationPairs) {
-                $value = $data[$deeperPatternPart] ?? null;
-                if ($value === null) {
-                    /* required but not found | not definitely required | nullable */
-                    continue;
-                }
-                if (!is_array($value)) {
-                    $this->recordError($deeperPatternPart, 'array');
-                    $invalid = true;
-                    continue;
-                }
-                $nextDir = $currentDir;
-                $nextDir[] = $deeperPatternPart;
-                $ret = $this->validRecursive($value, $deeperValidationPairs, $nextDir);
-                if ($ret !== []) {
-                    $data[$deeperPatternPart] = $ret;
-                } else {
-                    unset($data[$deeperPatternPart]);
                 }
             }
         }
