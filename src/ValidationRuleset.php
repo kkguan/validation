@@ -68,30 +68,30 @@ class ValidationRuleset
         $rules = [];
 
         foreach ($ruleMap as $rule => $ruleArgs) {
-            if ($rule == 'sometimes') {
+            if ($rule === 'sometimes') {
                 $flags |= static::FLAG_SOMETIMES;
-            } elseif ($rule == 'required') {
+            } elseif ($rule === 'required') {
                 $flags |= static::FLAG_REQUIRED;
                 if (isset($ruleMap['string'])) {
                     $rules[] = ValidationRule::make('required', static::getClosure('validateRequiredString'));
                 } else {
                     $rules[] = ValidationRule::make('required', static::getClosure('validateRequired'));
                 }
-            } elseif ($rule == 'nullable') {
+            } elseif ($rule === 'nullable') {
                 $flags |= static::FLAG_NULLABLE;
-            } elseif ($rule == 'numeric') {
+            } elseif ($rule === 'numeric') {
                 if (isset($ruleMap['array'])) {
                     throw new InvalidArgumentException("Rule 'numeric' conflicts with 'array'");
                 }
                 $rules[] = ValidationRule::make('numeric', static::getClosure('validateNumeric'));
-            } elseif ($rule == 'integer') {
+            } elseif ($rule === 'integer') {
                 $rules[] = ValidationRule::make('integer', static::getClosure('validateInteger'));
-            } elseif ($rule == 'string') {
+            } elseif ($rule === 'string') {
                 if (isset($ruleMap['array'])) {
                     throw new InvalidArgumentException("Rule 'string' conflicts with 'array'");
                 }
                 $rules[] = ValidationRule::make('string', static::getClosure('validateString'));
-            } elseif ($rule == 'array') {
+            } elseif ($rule === 'array') {
                 $rules[] = ValidationRule::make('array', static::getClosure('validateArray'));
             } elseif ($rule === 'min' || $rule === 'max') {
                 if (count($ruleArgs) !== 1) {
@@ -112,7 +112,7 @@ class ValidationRuleset
                 } else {
                     $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs);
                 }
-            } elseif ($rule != 'bail') { /* compatibility */
+            } elseif ($rule !=='bail') { /* compatibility */
                 throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
         }
