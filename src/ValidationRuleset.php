@@ -163,7 +163,7 @@ class ValidationRuleset
             if ($ruleArgs === []) {
                 $hashSlots[] = $rule;
             } else {
-                $hashSlots[] = sprintf("%s:%s", $rule, implode(', ', $ruleArgs));
+                $hashSlots[] = sprintf('%s:%s', $rule, implode(', ', $ruleArgs));
             }
         }
         return implode('|', $hashSlots);
