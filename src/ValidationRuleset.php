@@ -4,14 +4,17 @@ namespace KK\Validation;
 
 use Closure;
 use InvalidArgumentException;
+use JetBrains\PhpStorm\Pure;
 use SplFileInfo;
 use SplPriorityQueue;
+use function array_diff;
 use function array_map;
 use function count;
 use function ctype_space;
 use function explode;
 use function filter_var;
 use function implode;
+use function in_array;
 use function is_array;
 use function is_countable;
 use function is_null;
@@ -25,6 +28,7 @@ use function str_replace;
 use function strtolower;
 use function trim;
 use function ucwords;
+use function var_dump;
 
 class ValidationRuleset
 {
@@ -40,6 +44,8 @@ class ValidationRuleset
         'array' => 100,
         'min' => 1,
         'max' => 1,
+        'in' => 1,
+        /* rule flags */
         'sometimes' => 0,
         'nullable' => 0,
         'bail' => 0,
@@ -104,7 +110,7 @@ class ValidationRuleset
                 $rules[] = ValidationRule::make('array', static::getClosure('validateArray'));
             } elseif ($rule === 'min' || $rule === 'max') {
                 if (count($ruleArgs) !== 1) {
-                    throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
+                    throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter");
                 }
                 if (!is_numeric($ruleArgs[0])) {
                     throw new InvalidArgumentException("Rule '{$rule}' require numeric parameters");
@@ -113,6 +119,21 @@ class ValidationRuleset
                 $name = "{$rule}:{$ruleArgs[0]}";
                 $methodPart = $rule === 'min' ? 'Min' : 'Max';
                 $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}" . static::fetchTypedRule($ruleMap)), $ruleArgs);
+            } elseif ($rule === 'in') {
+                if (count($ruleArgs) === 0) {
+                    throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
+                }
+                $name = static::implodeFullRuleName($rule, $ruleArgs);
+                $suffix = isset($ruleMap['array']) ? 'Array' : '';
+                if (count($ruleArgs) <= 5) {
+                    $rules[] = ValidationRule::make($name, static::getClosure('validateInList'. $suffix), [$ruleArgs]);
+                } else {
+                    $ruleArgsMap = [];
+                    foreach ($ruleArgs as $ruleArg) {
+                        $ruleArgsMap[$ruleArg] = true;
+                    }
+                    $rules[] = ValidationRule::make($name, static::getClosure('validateInMap'. $suffix), [$ruleArgsMap]);
+                }
             } elseif ($rule !== 'bail') { /* compatibility */
                 throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
@@ -213,6 +234,15 @@ class ValidationRuleset
         }
 
         return '';
+    }
+
+    protected static function implodeFullRuleName(string $rule, array $args): string
+    {
+        if (count($args) === 0) {
+            return $rule;
+        } else {
+            return $rule . ':' . implode(', ', $args);
+        }
     }
 
     protected static function getClosure(string $method): Closure
@@ -339,5 +369,49 @@ class ValidationRuleset
     protected static function validateMaxString(string $value, int|float $max): bool
     {
         return mb_strlen($value) <= $max;
+    }
+
+    #[Pure] protected static function validateInList(mixed $value, array $list): bool
+    {
+        if (!is_array($value)) {
+            return in_array((string) $value, $list, true);
+        } else {
+            return static::validateInListArray($value, $list);
+        }
+    }
+
+    protected static function validateInListArray(array $value, array $list): bool
+    {
+        foreach ($value as $item) {
+            if (is_array($item)) {
+                return false;
+            }
+            if (!in_array((string) $item, $list, true)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    #[Pure] protected static function validateInMap(mixed $value, array $map): bool
+    {
+        if (!is_array($value)) {
+            return $map[(string) $value] ?? false;
+        } else {
+            return static::validateInMapArray($value, $map);
+        }
+    }
+
+    protected static function validateInMapArray(array $value, array $map): bool
+    {
+        foreach ($value as $item) {
+            if (is_array($item)) {
+                return false;
+            }
+            if (!isset($map[(string) $item])) {
+                return false;
+            }
+        }
+        return true;
     }
 }

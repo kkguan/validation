@@ -187,3 +187,56 @@ try {
     // Attribute 'foo' violates the following rules: min:1
     echo ValidationErrorDumper::dump($e->errors()) . "\n";
 }
+
+$validator = new Validator([
+    'foo' => 'in:1, 2, 3'
+]);
+try {
+    $validator->validate(['foo' => null]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: in:1, 2, 3
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => 1]);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+try {
+    $validator->validate(['foo' => []]);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+try {
+    $validator->validate(['foo' => [123]]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: in:1, 2, 3
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => [1, '3', 2]]);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+try {
+    $validator->validate(['foo' => [2, 3, 4]]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: in:1, 2, 3
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+
+$validator = new Validator([
+    'foo' => 'required|array|in:9, 8, 7, 6, 5, 4, 3' // in map
+]);
+try {
+    $validator->validate(['foo' => []]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: required
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => [0, 1, 2]]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: in:9, 8, 7, 6, 5, 4, 3
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
