@@ -10,7 +10,7 @@ class ValidationErrorDumper
     {
         $messages = [];
         foreach ($errors as $key => $errorSet) {
-            $messages[] = "Attribute '{$key}' violates the following rules: " . implode(', ', $errorSet);
+            $messages[] = "Attribute '{$key}' violates the following rules: " . implode('|', $errorSet);
         }
 
         return implode("\n", $messages);
