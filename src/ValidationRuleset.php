@@ -18,11 +18,13 @@ use function is_null;
 use function is_numeric;
 use function is_string;
 use function ksort;
+use function ltrim;
 use function mb_strlen;
 use function sprintf;
+use function str_replace;
 use function strtolower;
 use function trim;
-use function var_dump;
+use function ucwords;
 
 class ValidationRuleset
 {
@@ -41,6 +43,15 @@ class ValidationRuleset
         'sometimes' => 0,
         'nullable' => 0,
         'bail' => 0,
+    ];
+
+    protected const TYPED_RULES = [
+        /* note: integer should be in front of numeric,
+        /* because it is more specific */
+        'integer',
+        'numeric',
+        'string',
+        'array'
     ];
 
     /** @var int base flags */
@@ -72,10 +83,8 @@ class ValidationRuleset
                 $flags |= static::FLAG_SOMETIMES;
             } elseif ($rule === 'required') {
                 $flags |= static::FLAG_REQUIRED;
-                if (isset($ruleMap['string'])) {
-                    $rules[] = ValidationRule::make('required', static::getClosure('validateRequiredString'));
-                } else {
-                    $rules[] = ValidationRule::make('required', static::getClosure('validateRequired'));
+                if (!isset($ruleMap['numeric']) && !isset($ruleMap['integer'])) {
+                    $rules[] = ValidationRule::make('required', static::getClosure('validateRequired' . static::fetchTypedRule($ruleMap)));
                 }
             } elseif ($rule === 'nullable') {
                 $flags |= static::FLAG_NULLABLE;
@@ -103,16 +112,8 @@ class ValidationRuleset
                 $ruleArgs[0] += 0;
                 $name = "{$rule}:{$ruleArgs[0]}";
                 $methodPart = $rule === 'min' ? 'Min' : 'Max';
-                if (isset($ruleMap['integer'])) {
-                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}Integer"), $ruleArgs);
-                } elseif (isset($ruleMap['numeric'])) {
-                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}Numeric"), $ruleArgs);
-                } elseif (isset($ruleMap['string'])) {
-                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}String"), $ruleArgs);
-                } else {
-                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}"), $ruleArgs);
-                }
-            } elseif ($rule !=='bail') { /* compatibility */
+                $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}" . static::fetchTypedRule($ruleMap)), $ruleArgs);
+            } elseif ($rule !== 'bail') { /* compatibility */
                 throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
         }
@@ -197,6 +198,23 @@ class ValidationRuleset
         return $ruleMap;
     }
 
+    protected static function upperCamelize(string $uncamelized_words, string $separator = '_'): string
+    {
+        $uncamelized_words = str_replace($separator, ' ', strtolower($uncamelized_words));
+        return ltrim(str_replace(' ', '', ucwords($uncamelized_words)), $separator);
+    }
+
+    protected static function fetchTypedRule(array $ruleMap): string
+    {
+        foreach (static::TYPED_RULES as $typedRule) {
+            if (isset($ruleMap[$typedRule])) {
+                return static::upperCamelize($typedRule);
+            }
+        }
+
+        return '';
+    }
+
     protected static function getClosure(string $method): Closure
     {
         return static::$closureCache[$method] ??
@@ -211,7 +229,7 @@ class ValidationRuleset
         if (is_string($value) && ($value === '' || ctype_space($value))) {
             return false;
         }
-        if (is_countable($value) && count($value) < 1) {
+        if (is_countable($value) && count($value) === 0) {
             return false;
         }
         if ($value instanceof SplFileInfo) {
@@ -224,6 +242,16 @@ class ValidationRuleset
     protected static function validateRequiredString(mixed $value): bool
     {
         return $value !== '' && !ctype_space($value);
+    }
+
+    protected static function validateRequiredArray(array $value): bool
+    {
+        return count($value) !== 0;
+    }
+
+    protected static function validateRequiredFile(SplFileInfo $value): bool
+    {
+        return $value->getPath() !== '';
     }
 
     protected static function validateNumeric(mixed &$value): bool
@@ -257,17 +285,18 @@ class ValidationRuleset
     protected static function getLength(mixed $value): int
     {
         if (is_numeric($value)) {
-            $length = $value + 0;
+            return $value + 0;
         } elseif (is_string($value)) {
-            $length = mb_strlen($value);
+            return mb_strlen($value);
         } elseif (is_array($value)) {
-            $length = count($value);
+            return count($value);
+        } elseif ($value === null) {
+            return 0;
         } elseif ($value instanceof SplFileInfo) {
-            $length = $value->getSize();
-        } else {
-            $length = mb_strlen((string) $value);
+            return $value->getSize();
         }
-        return $length;
+
+        return mb_strlen((string) $value);
     }
 
     protected static function validateMin(mixed $value, int|float $min): bool

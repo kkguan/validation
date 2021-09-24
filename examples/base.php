@@ -134,3 +134,56 @@ try {
     // Attribute 'foo' violates the following rules: string
     echo ValidationErrorDumper::dump($e->errors()) . "\n";
 }
+try {
+    $validator->validate(['foo' => null]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: string
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+
+$validator = new Validator([
+    'foo' => 'required|max:255'
+]);
+try {
+    $validator->validate(['foo' => null]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: required
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => 256]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: max:255
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+
+$validator = new Validator([
+    'foo' => 'max:255'
+]);
+try {
+    $validator->validate(['foo' => null]);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+
+$validator = new Validator([
+    'foo' => 'min:1|max:255'
+]);
+try {
+    $validator->validate(['foo' => null]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: min:1
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => '256.00']);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: max:255
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => []]);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: min:1
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
