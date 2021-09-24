@@ -240,3 +240,48 @@ try {
     // Attribute 'foo' violates the following rules: in:9, 8, 7, 6, 5, 4, 3
     echo ValidationErrorDumper::dump($e->errors()) . "\n";
 }
+
+$validator = new Validator([
+    'foo' => 'alpha'
+]);
+try {
+    $validator->validate(['foo' => '1']);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: alpha
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+try {
+    $validator->validate(['foo' => 'xyz']);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+
+$validator = new Validator([
+    'foo' => 'alpha_num'
+]);
+try {
+    $validator->validate(['foo' => 'xyz123']);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+try {
+    $validator->validate(['foo' => 'xyz_123-v4']);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: alpha_num
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}
+
+$validator = new Validator([
+    'foo' => 'alpha_dash'
+]);
+try {
+    $validator->validate(['foo' => 'xyz_123-v4']);
+} catch (ValidationException $e) {
+    echo "Never here\n";
+}
+try {
+    $validator->validate(['foo' => 'xyz 123 %']);
+} catch (ValidationException $e) {
+    // Attribute 'foo' violates the following rules: alpha_dash
+    echo ValidationErrorDumper::dump($e->errors()) . "\n";
+}

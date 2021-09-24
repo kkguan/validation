@@ -23,6 +23,7 @@ use function is_string;
 use function ksort;
 use function ltrim;
 use function mb_strlen;
+use function preg_match;
 use function sprintf;
 use function str_replace;
 use function strtolower;
@@ -45,6 +46,9 @@ class ValidationRuleset
         'min' => 1,
         'max' => 1,
         'in' => 1,
+        'alpha' => 1,
+        'alpha_num' => 1,
+        'alpha_dash' => 1,
         /* rule flags */
         'sometimes' => 0,
         'nullable' => 0,
@@ -126,14 +130,20 @@ class ValidationRuleset
                 $name = static::implodeFullRuleName($rule, $ruleArgs);
                 $suffix = isset($ruleMap['array']) ? 'Array' : '';
                 if (count($ruleArgs) <= 5) {
-                    $rules[] = ValidationRule::make($name, static::getClosure('validateInList'. $suffix), [$ruleArgs]);
+                    $rules[] = ValidationRule::make($name, static::getClosure('validateInList' . $suffix), [$ruleArgs]);
                 } else {
                     $ruleArgsMap = [];
                     foreach ($ruleArgs as $ruleArg) {
                         $ruleArgsMap[$ruleArg] = true;
                     }
-                    $rules[] = ValidationRule::make($name, static::getClosure('validateInMap'. $suffix), [$ruleArgsMap]);
+                    $rules[] = ValidationRule::make($name, static::getClosure('validateInMap' . $suffix), [$ruleArgsMap]);
                 }
+            } elseif ($rule === 'alpha' || $rule === 'alpha_num' || $rule === 'alpha_dash') {
+                if (!isset($ruleMap['string'])) {
+                    $ruleMap['string'] = []; // prevent from re-adding
+                    $rules[] = ValidationRule::make($rule, static::getClosure('validateString'));
+                }
+                $rules[] = ValidationRule::make($rule, static::getClosure('validate' . static::upperCamelize($rule)));
             } elseif ($rule !== 'bail') { /* compatibility */
                 throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
@@ -413,5 +423,20 @@ class ValidationRuleset
             }
         }
         return true;
+    }
+
+    public static function validateAlpha(string $value): bool
+    {
+        return preg_match('/^[\pL\pM]+$/u', $value);
+    }
+
+    public static function validateAlphaNum(string $value): bool
+    {
+        return preg_match('/^[\pL\pM\pN]+$/u', $value) > 0;
+    }
+
+    public static function validateAlphaDash(string $value): bool
+    {
+        return preg_match('/^[\pL\pM\pN_-]+$/u', $value) > 0;
     }
 }
