@@ -159,6 +159,14 @@ class ValidationRuleset
     }
 
     /**
+     * @return ValidationRule[]
+     */
+    public function getRules(): array
+    {
+        return $this->rules;
+    }
+
+    /**
      * @return string[] Error attribute names
      */
     public function check(mixed $data): array

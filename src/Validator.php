@@ -59,6 +59,14 @@ class Validator
     }
 
     /**
+     * @return ValidationPair[]
+     */
+    public function getValidationPairs(): array
+    {
+        return $this->validationPairs;
+    }
+
+    /**
      * @param array $data
      * @param ValidationPair[] $validationPairs
      * @param string[] $currentDir
