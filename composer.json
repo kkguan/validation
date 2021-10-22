@@ -1,10 +1,11 @@
 {
     "name": "kkgroup/validation",
     "type": "library",
-    "license": "MIT",
+    "license": "Apache-2.0",
     "keywords": [
         "validation",
         "validator",
+        "kkgroup",
         "kk"
     ],
     "description": "KK validation library",
