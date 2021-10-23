@@ -11,7 +11,12 @@
     "description": "KK validation library",
     "autoload": {
         "psr-4": {
-            "KK\\Validation\\": "src"
+            "KK\\Validation\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "KKTest\\Validation\\": "tests/"
         }
     },
     "require": {
@@ -27,6 +32,11 @@
     },
     "require-dev": {
         "hyperf/utils": "^2.2",
-        "hyperf/validation": "^2.2"
+        "hyperf/validation": "^2.2",
+        "mockery/mockery": "^1.4",
+        "phpunit/phpunit": "^9.5"
+    },
+    "scripts": {
+        "test": "phpunit -c phpunit.xml --colors=always"
     }
 }
