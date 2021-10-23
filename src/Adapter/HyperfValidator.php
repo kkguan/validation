@@ -10,10 +10,12 @@ use Hyperf\Utils\Fluent;
 use Hyperf\Utils\MessageBag;
 use Hyperf\Utils\Str;
 use Hyperf\Validation\Concerns;
+use Hyperf\Validation\Contract\PresenceVerifierInterface;
 use Hyperf\Validation\ValidationException;
 use Hyperf\Validation\ValidationRuleParser;
 use KK\Validation\Validator;
 use Psr\Container\ContainerInterface;
+use RuntimeException;
 
 class HyperfValidator implements ValidatorInterface
 {
@@ -146,6 +148,13 @@ class HyperfValidator implements ValidatorInterface
      * @var Validator
      */
     protected $validator;
+
+    /**
+     * The Presence Verifier implementation.
+     *
+     * @var \Hyperf\Validation\Contract\PresenceVerifierInterface
+     */
+    protected $presenceVerifier;
 
     public function __construct(
         TranslatorInterface $translator,
@@ -315,6 +324,28 @@ class HyperfValidator implements ValidatorInterface
         ));
 
         $this->failedRules[$attribute][$rule] = $parameters;
+    }
+
+    /**
+     * Set the Presence Verifier implementation.
+     */
+    public function setPresenceVerifier(PresenceVerifierInterface $presenceVerifier)
+    {
+        $this->presenceVerifier = $presenceVerifier;
+    }
+
+    /**
+     * Get the Presence Verifier implementation.
+     *
+     *@throws \RuntimeException
+     */
+    public function getPresenceVerifier(): PresenceVerifierInterface
+    {
+        if (! isset($this->presenceVerifier)) {
+            throw new RuntimeException('Presence verifier has not been set.');
+        }
+
+        return $this->presenceVerifier;
     }
 
     /**
