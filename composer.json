@@ -9,7 +9,6 @@
         "kk"
     ],
     "description": "KK validation library",
-    "minimum-stability": "dev",
     "autoload": {
         "psr-4": {
             "KK\\Validation\\": "src"
@@ -20,7 +19,14 @@
         "ext-mbstring": "*",
         "ext-ctype": "*"
     },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
     "config": {
+        "optimize-autoloader": true,
         "sort-packages": true
+    },
+    "require-dev": {
+        "hyperf/utils": "^2.2",
+        "hyperf/validation": "^2.2"
     }
 }
