@@ -3,10 +3,10 @@
 ## 简介
 
 - 兼容 Hyperf/Laravel Validation 规则
-- 提升约 500 倍性能
-- 验证器可多次复用不同数据
+- 部分场景可获得约 500 倍性能提升
+- 验证器可多次复用不同数据，无状态设计
 - 规则可全局复用
-- 智能合并规则
+- 智能合并验证规则
 
 ## 安装
 
@@ -102,10 +102,8 @@ use Psr\Container\ContainerInterface;
 #[Listener]
 class ValidatorFactoryResolvedListener implements ListenerInterface
 {
-    /**
-     * @var ContainerInterface
-     */
-    private $container;
+
+    private ContainerInterface $container;
 
     public function __construct(ContainerInterface $container)
     {
