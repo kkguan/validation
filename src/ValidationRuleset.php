@@ -89,63 +89,80 @@ class ValidationRuleset
         $rules = [];
 
         foreach ($ruleMap as $rule => $ruleArgs) {
-            if ($rule === 'sometimes') {
-                $flags |= static::FLAG_SOMETIMES;
-            } elseif ($rule === 'required') {
-                $flags |= static::FLAG_REQUIRED;
-                if (!isset($ruleMap['numeric']) && !isset($ruleMap['integer'])) {
-                    $rules[] = ValidationRule::make('required', static::getClosure('validateRequired' . static::fetchTypedRule($ruleMap)));
-                }
-            } elseif ($rule === 'nullable') {
-                $flags |= static::FLAG_NULLABLE;
-            } elseif ($rule === 'numeric') {
-                if (isset($ruleMap['array'])) {
-                    throw new InvalidArgumentException("Rule 'numeric' conflicts with 'array'");
-                }
-                $rules[] = ValidationRule::make('numeric', static::getClosure('validateNumeric'));
-            } elseif ($rule === 'integer') {
-                $rules[] = ValidationRule::make('integer', static::getClosure('validateInteger'));
-            } elseif ($rule === 'string') {
-                if (isset($ruleMap['array'])) {
-                    throw new InvalidArgumentException("Rule 'string' conflicts with 'array'");
-                }
-                $rules[] = ValidationRule::make('string', static::getClosure('validateString'));
-            } elseif ($rule === 'array') {
-                $rules[] = ValidationRule::make('array', static::getClosure('validateArray'));
-            } elseif ($rule === 'min' || $rule === 'max') {
-                if (count($ruleArgs) !== 1) {
-                    throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter");
-                }
-                if (!is_numeric($ruleArgs[0])) {
-                    throw new InvalidArgumentException("Rule '{$rule}' require numeric parameters");
-                }
-                $ruleArgs[0] += 0;
-                $name = "{$rule}:{$ruleArgs[0]}";
-                $methodPart = $rule === 'min' ? 'Min' : 'Max';
-                $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}" . static::fetchTypedRule($ruleMap)), $ruleArgs);
-            } elseif ($rule === 'in') {
-                if (count($ruleArgs) === 0) {
-                    throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
-                }
-                $name = static::implodeFullRuleName($rule, $ruleArgs);
-                $suffix = isset($ruleMap['array']) ? 'Array' : '';
-                if (count($ruleArgs) <= 5) {
-                    $rules[] = ValidationRule::make($name, static::getClosure('validateInList' . $suffix), [$ruleArgs]);
-                } else {
-                    $ruleArgsMap = [];
-                    foreach ($ruleArgs as $ruleArg) {
-                        $ruleArgsMap[$ruleArg] = true;
+            switch ($rule) {
+                case 'sometimes':
+                    $flags |= static::FLAG_SOMETIMES;
+                    break;
+                case 'required':
+                    $flags |= static::FLAG_REQUIRED;
+                    if (!isset($ruleMap['numeric']) && !isset($ruleMap['integer'])) {
+                        $rules[] = ValidationRule::make('required', static::getClosure('validateRequired' . static::fetchTypedRule($ruleMap)));
                     }
-                    $rules[] = ValidationRule::make($name, static::getClosure('validateInMap' . $suffix), [$ruleArgsMap]);
-                }
-            } elseif ($rule === 'alpha' || $rule === 'alpha_num' || $rule === 'alpha_dash') {
-                if (!isset($ruleMap['string'])) {
-                    $ruleMap['string'] = []; // prevent from re-adding
-                    $rules[] = ValidationRule::make($rule, static::getClosure('validateString'));
-                }
-                $rules[] = ValidationRule::make($rule, static::getClosure('validate' . static::upperCamelize($rule)));
-            } elseif ($rule !== 'bail') { /* compatibility */
-                throw new InvalidArgumentException("Unknown rule '{$rule}'");
+                    break;
+                case 'nullable':
+                    $flags |= static::FLAG_NULLABLE;
+                    break;
+                case 'numeric':
+                    if (isset($ruleMap['array'])) {
+                        throw new InvalidArgumentException("Rule 'numeric' conflicts with 'array'");
+                    }
+                    $rules[] = ValidationRule::make('numeric', static::getClosure('validateNumeric'));
+                    break;
+                case 'integer':
+                    $rules[] = ValidationRule::make('integer', static::getClosure('validateInteger'));
+                    break;
+                case 'string':
+                    if (isset($ruleMap['array'])) {
+                        throw new InvalidArgumentException("Rule 'string' conflicts with 'array'");
+                    }
+                    $rules[] = ValidationRule::make('string', static::getClosure('validateString'));
+                    break;
+                case 'array':
+                    $rules[] = ValidationRule::make('array', static::getClosure('validateArray'));
+                    break;
+                case 'min':
+                case 'max':
+                    if (count($ruleArgs) !== 1) {
+                        throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter");
+                    }
+                    if (!is_numeric($ruleArgs[0])) {
+                        throw new InvalidArgumentException("Rule '{$rule}' require numeric parameters");
+                    }
+                    $ruleArgs[0] += 0;
+                    $name = "{$rule}:{$ruleArgs[0]}";
+                    $methodPart = $rule === 'min' ? 'Min' : 'Max';
+                    $rules[] = ValidationRule::make($name, static::getClosure("validate{$methodPart}" . static::fetchTypedRule($ruleMap)), $ruleArgs);
+                    break;
+                case 'in':
+                    if (count($ruleArgs) === 0) {
+                        throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter at least");
+                    }
+                    $name = static::implodeFullRuleName($rule, $ruleArgs);
+                    $suffix = isset($ruleMap['array']) ? 'Array' : '';
+                    if (count($ruleArgs) <= 5) {
+                        $rules[] = ValidationRule::make($name, static::getClosure('validateInList' . $suffix), [$ruleArgs]);
+                    } else {
+                        $ruleArgsMap = [];
+                        foreach ($ruleArgs as $ruleArg) {
+                            $ruleArgsMap[$ruleArg] = true;
+                        }
+                        $rules[] = ValidationRule::make($name, static::getClosure('validateInMap' . $suffix), [$ruleArgsMap]);
+                    }
+                    break;
+                case 'alpha':
+                case 'alpha_num':
+                case 'alpha_dash':
+                    if (!isset($ruleMap['string'])) {
+                        $ruleMap['string'] = []; // prevent from re-adding
+                        $rules[] = ValidationRule::make($rule, static::getClosure('validateString'));
+                    }
+                    $rules[] = ValidationRule::make($rule, static::getClosure('validate' . static::upperCamelize($rule)));
+                    break;
+                case 'bail':
+                    /* compatibility */
+                    break;
+                default:
+                    throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
         }
 
