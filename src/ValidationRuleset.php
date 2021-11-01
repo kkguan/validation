@@ -276,7 +276,7 @@ class ValidationRuleset
         if (count($args) === 0) {
             return $rule;
         } else {
-            return $rule . ':' . implode(', ', $args);
+            return $rule . ':' . implode(',', $args);
         }
     }
 
