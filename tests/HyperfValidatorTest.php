@@ -12,6 +12,7 @@ use KK\Validation\Adapter\HyperfValidator;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+use function extension_loaded;
 
 /**
  * @internal
@@ -19,6 +20,13 @@ use Psr\Container\ContainerInterface;
  */
 class HyperfValidatorTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        if (!extension_loaded('swow') && !extension_loaded('swoole')) {
+            $this->markTestSkipped('Swow/Swoole extension is unavailable');
+        }
+    }
+
     protected function tearDown(): void
     {
         Mockery::close();
