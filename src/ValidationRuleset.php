@@ -7,7 +7,6 @@ use InvalidArgumentException;
 use JetBrains\PhpStorm\Pure;
 use SplFileInfo;
 use SplPriorityQueue;
-use function array_diff;
 use function array_map;
 use function count;
 use function ctype_space;
@@ -53,6 +52,13 @@ class ValidationRuleset
         'sometimes' => 0,
         'nullable' => 0,
         'bail' => 0,
+    ];
+
+    protected const IMPLICIT_DEPENDENCY_RULESET_MAP = [
+        'alpha' => 'string',
+        'alpha_num' => 'string',
+        'alpha_dash' => 'string',
+        'ip' => 'string',
     ];
 
     protected const TYPED_RULES = [
@@ -152,10 +158,6 @@ class ValidationRuleset
                 case 'alpha':
                 case 'alpha_num':
                 case 'alpha_dash':
-                    if (!isset($ruleMap['string'])) {
-                        $ruleMap['string'] = []; // prevent from re-adding
-                        $rules[] = ValidationRule::make($rule, static::getClosure('validateString'));
-                    }
                     $rules[] = ValidationRule::make($rule, static::getClosure('validate' . static::upperCamelize($rule)));
                     break;
                 case 'bail':
@@ -226,11 +228,11 @@ class ValidationRuleset
         return implode('|', $hashSlots);
     }
 
-    protected static function convertRuleStringToRuleMap(string $ruleString): array
+    protected static function convertRuleStringToRuleMap(string $ruleString, bool $solvePriority = true): array
     {
         $rules = array_map('trim', explode('|', $ruleString));
-        $ruleQueue = new SplPriorityQueue();
-        $ruleMap = [];
+
+        $tmpRuleMap = [];
         foreach ($rules as $rule) {
             $ruleParts = explode(':', $rule, 2);
             $rule = strtolower(trim($ruleParts[0]));
@@ -242,8 +244,30 @@ class ValidationRuleset
             } else {
                 $ruleArgs = [];
             }
+            $tmpRuleMap[$rule] = $ruleArgs;
+        }
+        foreach ($tmpRuleMap as $rule => $_) {
+            $implicitDependencyRuleset = static::IMPLICIT_DEPENDENCY_RULESET_MAP[$rule] ?? null;
+            if ($implicitDependencyRuleset === null) {
+                continue;
+            }
+            $extraRuleMap = static::convertRuleStringToRuleMap($implicitDependencyRuleset, false);
+            foreach ($extraRuleMap as $extraRule => $extraRuleArgs) {
+                if (!isset($tmpRuleMap[$extraRule])) {
+                    $tmpRuleMap[$extraRule] = $extraRuleArgs;
+                }
+            }
+        }
+
+        if (!$solvePriority) {
+            return $tmpRuleMap;
+        }
+
+        $ruleQueue = new SplPriorityQueue();
+        foreach ($tmpRuleMap as $rule => $ruleArgs) {
             $ruleQueue->insert([$rule, $ruleArgs], static::PRIORITY_MAP[$rule]);
         }
+        $ruleMap = [];
         while (!$ruleQueue->isEmpty()) {
             [$rule, $ruleArgs] = $ruleQueue->extract();
             if (isset($ruleMap[$rule])) {
@@ -251,6 +275,7 @@ class ValidationRuleset
             }
             $ruleMap[$rule] = $ruleArgs;
         }
+
         return $ruleMap;
     }
 
@@ -271,12 +296,12 @@ class ValidationRuleset
         return '';
     }
 
-    protected static function implodeFullRuleName(string $rule, array $args): string
+    protected static function implodeFullRuleName(string $rule, array $ruleArgs): string
     {
-        if (count($args) === 0) {
+        if (count($ruleArgs) === 0) {
             return $rule;
         } else {
-            return $rule . ':' . implode(',', $args);
+            return $rule . ':' . implode(',', $ruleArgs);
         }
     }
 
