@@ -26,9 +26,12 @@ use function preg_match;
 use function sprintf;
 use function str_replace;
 use function strtolower;
+use function strtoupper;
 use function trim;
 use function ucwords;
-use function var_dump;
+use const FILTER_FLAG_IPV4;
+use const FILTER_FLAG_IPV6;
+use const FILTER_VALIDATE_IP;
 
 class ValidationRuleset
 {
@@ -37,17 +40,20 @@ class ValidationRuleset
     protected const FLAG_NULLABLE = 1 << 2;
 
     protected const PRIORITY_MAP = [
-        'required' => 10,
+        'required' => 50,
         'numeric' => 100,
         'integer' => 100,
         'string' => 100,
         'array' => 100,
-        'min' => 1,
-        'max' => 1,
-        'in' => 1,
-        'alpha' => 1,
-        'alpha_num' => 1,
-        'alpha_dash' => 1,
+        'min' => 10,
+        'max' => 10,
+        'in' => 10,
+        'alpha' => 10,
+        'alpha_num' => 10,
+        'alpha_dash' => 10,
+        'ip' => 10,
+        'ipv4' => 5,
+        'ipv6' => 5,
         /* rule flags */
         'sometimes' => 0,
         'nullable' => 0,
@@ -159,6 +165,11 @@ class ValidationRuleset
                 case 'alpha_num':
                 case 'alpha_dash':
                     $rules[] = ValidationRule::make($rule, static::getClosure('validate' . static::upperCamelize($rule)));
+                    break;
+                case 'ip':
+                case 'ipv4':
+                case 'ipv6':
+                    $rules[] = ValidationRule::make($rule, static::getClosure('validate' . strtoupper($rule)));
                     break;
                 case 'bail':
                     /* compatibility */
@@ -488,5 +499,20 @@ class ValidationRuleset
     public static function validateAlphaDash(string $value): bool
     {
         return preg_match('/^[\pL\pM\pN_-]+$/u', $value) > 0;
+    }
+
+    public static function validateIP(string $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_IP) !== false;
+    }
+
+    public static function validateIPV4(string $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
+    public static function validateIPV6(string $value): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
 }
