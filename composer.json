@@ -9,6 +9,18 @@
         "kk"
     ],
     "description": "KK validation library",
+    "require": {
+        "php": ">=8.0",
+        "ext-mbstring": "*",
+        "ext-ctype": "*"
+    },
+    "require-dev": {
+        "hyperf/utils": "^2.2",
+        "hyperf/validation": "^2.2",
+        "jchook/phpunit-assert-throws": "^1.0",
+        "mockery/mockery": "^1.4",
+        "phpunit/phpunit": "^9.5"
+    },
     "autoload": {
         "psr-4": {
             "KK\\Validation\\": "src/"
@@ -19,22 +31,11 @@
             "KKTest\\Validation\\": "tests/"
         }
     },
-    "require": {
-        "php": ">=8.0",
-        "ext-mbstring": "*",
-        "ext-ctype": "*"
-    },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true
-    },
-    "require-dev": {
-        "hyperf/utils": "^2.2",
-        "hyperf/validation": "^2.2",
-        "mockery/mockery": "^1.4",
-        "phpunit/phpunit": "^9.5"
     },
     "scripts": {
         "test": "phpunit -c phpunit.xml --colors=always"
