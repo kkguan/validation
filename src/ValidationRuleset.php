@@ -113,6 +113,11 @@ class ValidationRuleset
                     }
                     break;
                 case 'required_if':
+                    if (count($ruleArgs) !== 2) {
+                        throw new InvalidArgumentException("Rule '{$rule}' require 2 parameter");
+                    }
+                    $ruleArgs[] = 'validateRequired' . static::fetchTypedRule($ruleMap);
+                    $rules[] = ValidationRule::make('required_if', static::getClosure('validateRequiredIf'), $ruleArgs);
                     break;
                 case 'nullable':
                     $flags |= static::FLAG_NULLABLE;
@@ -202,7 +207,7 @@ class ValidationRuleset
     /**
      * @return string[] Error attribute names
      */
-    public function check(mixed $data): array
+    public function check(mixed $data, array $attributes = []): array
     {
         if (($this->flags & static::FLAG_NULLABLE) && $data === null) {
             return [];
@@ -212,7 +217,7 @@ class ValidationRuleset
 
         foreach ($this->rules as $rule) {
             $closure = $rule->closure;
-            $valid = $closure($data, ...$rule->args);
+            $valid = $closure($data, $attributes, ...$rule->args);
             if (!$valid) {
                 $errors[] = $rule->name;
                 /* Always bail here, for example:
@@ -325,7 +330,7 @@ class ValidationRuleset
             (static::$closureCache[$method] = Closure::fromCallable([static::class, $method]));
     }
 
-    protected static function validateRequired(mixed $value): bool
+    protected static function validateRequired(mixed $value, array $attributes): bool
     {
         if (is_null($value)) {
             return false;
@@ -343,22 +348,33 @@ class ValidationRuleset
         return true;
     }
 
-    protected static function validateRequiredString(mixed $value): bool
+    protected static function validateRequiredIf(mixed $value, array $attributes, string $key, mixed $keyValue, string $validator): bool
+    {
+        if (array_key_exists($key, $attributes)) {
+            if ($attributes[$key] == $keyValue) {
+                return self::$validator($value, $attributes);
+            }
+        }
+
+        return true;
+    }
+
+    protected static function validateRequiredString(mixed $value, array $attributes): bool
     {
         return $value !== '' && !ctype_space($value);
     }
 
-    protected static function validateRequiredArray(array $value): bool
+    protected static function validateRequiredArray(array $value, array $attributes): bool
     {
         return count($value) !== 0;
     }
 
-    protected static function validateRequiredFile(SplFileInfo $value): bool
+    protected static function validateRequiredFile(SplFileInfo $value, array $attributes): bool
     {
         return $value->getPath() !== '';
     }
 
-    protected static function validateNumeric(mixed &$value): bool
+    protected static function validateNumeric(mixed &$value, array $attributes): bool
     {
         if (!is_numeric($value)) {
             return false;
@@ -367,7 +383,7 @@ class ValidationRuleset
         return true;
     }
 
-    protected static function validateInteger(mixed &$value): bool
+    protected static function validateInteger(mixed &$value, array $attributes): bool
     {
         if (filter_var($value, FILTER_VALIDATE_INT) === false) {
             return false;
@@ -376,17 +392,17 @@ class ValidationRuleset
         return true;
     }
 
-    protected static function validateString(mixed $value): bool
+    protected static function validateString(mixed $value, array $attributes): bool
     {
         return is_string($value);
     }
 
-    protected static function validateArray(mixed $value): bool
+    protected static function validateArray(mixed $value, array $attributes): bool
     {
         return is_array($value);
     }
 
-    protected static function getLength(mixed $value): int
+    protected static function getLength(mixed $value, array $attributes): int
     {
         if (is_numeric($value)) {
             return $value + 0;
@@ -403,49 +419,50 @@ class ValidationRuleset
         return mb_strlen((string) $value);
     }
 
-    protected static function validateMin(mixed $value, int|float $min): bool
+    protected static function validateMin(mixed $value, array $attributes, int|float $min): bool
     {
         // TODO: file min support b, kb, mb, gb ...
         return static::getLength($value) >= $min;
     }
 
-    protected static function validateMax(mixed $value, int|float $max): bool
+    protected static function validateMax(mixed $value, array $attributes, int|float $max): bool
     {
         // TODO: file max support b, kb, mb, gb ...
         return static::getLength($value) <= $max;
     }
 
-    protected static function validateMinInteger(int $value, int|float $min): bool
+    protected static function validateMinInteger(int $value, array $attributes, int|float $min): bool
     {
         return $value >= $min;
     }
 
-    protected static function validateMaxInteger(int $value, int|float $max): bool
+    protected static function validateMaxInteger(int $value, array $attributes, int|float $max): bool
     {
         return $value <= $max;
     }
 
-    protected static function validateMinNumeric(int|float $value, int|float $min): bool
+    protected static function validateMinNumeric(int|float $value, array $attributes, int|float $min): bool
     {
         return $value >= $min;
     }
 
-    protected static function validateMaxNumeric(int|float $value, int|float $max): bool
+    protected static function validateMaxNumeric(int|float $value, array $attributes, int|float $max): bool
     {
         return $value <= $max;
     }
 
-    protected static function validateMinString(string $value, int|float $min): bool
+    protected static function validateMinString(string $value, array $attributes, int|float $min): bool
     {
         return mb_strlen($value) >= $min;
     }
 
-    protected static function validateMaxString(string $value, int|float $max): bool
+    protected static function validateMaxString(string $value, array $attributes, int|float $max): bool
     {
         return mb_strlen($value) <= $max;
     }
 
-    #[Pure] protected static function validateInList(mixed $value, array $list): bool
+    #[Pure]
+    protected static function validateInList(mixed $value, array $attributes, array $list): bool
     {
         if (!is_array($value)) {
             return in_array((string) $value, $list, true);
@@ -454,7 +471,7 @@ class ValidationRuleset
         }
     }
 
-    protected static function validateInListArray(array $value, array $list): bool
+    protected static function validateInListArray(array $value, array $attributes, array $list): bool
     {
         foreach ($value as $item) {
             if (is_array($item)) {
@@ -467,7 +484,8 @@ class ValidationRuleset
         return true;
     }
 
-    #[Pure] protected static function validateInMap(mixed $value, array $map): bool
+    #[Pure]
+    protected static function validateInMap(mixed $value, array $attributes, array $map): bool
     {
         if (!is_array($value)) {
             return $map[(string) $value] ?? false;
@@ -476,7 +494,7 @@ class ValidationRuleset
         }
     }
 
-    protected static function validateInMapArray(array $value, array $map): bool
+    protected static function validateInMapArray(array $value, array $attributes, array $map): bool
     {
         foreach ($value as $item) {
             if (is_array($item)) {
@@ -489,32 +507,32 @@ class ValidationRuleset
         return true;
     }
 
-    public static function validateAlpha(string $value): bool
+    public static function validateAlpha(string $value, array $attributes): bool
     {
         return preg_match('/^[\pL\pM]+$/u', $value);
     }
 
-    public static function validateAlphaNum(string $value): bool
+    public static function validateAlphaNum(string $value, array $attributes): bool
     {
         return preg_match('/^[\pL\pM\pN]+$/u', $value) > 0;
     }
 
-    public static function validateAlphaDash(string $value): bool
+    public static function validateAlphaDash(string $value, array $attributes): bool
     {
         return preg_match('/^[\pL\pM\pN_-]+$/u', $value) > 0;
     }
 
-    public static function validateIP(string $value): bool
+    public static function validateIP(string $value, array $attributes): bool
     {
         return filter_var($value, FILTER_VALIDATE_IP) !== false;
     }
 
-    public static function validateIPV4(string $value): bool
+    public static function validateIPV4(string $value, array $attributes): bool
     {
         return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
     }
 
-    public static function validateIPV6(string $value): bool
+    public static function validateIPV6(string $value, array $attributes): bool
     {
         return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }

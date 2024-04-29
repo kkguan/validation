@@ -115,7 +115,7 @@ class Validator
                     continue;
                 }
                 $value = $data[$currentPatternPart];
-                $errors = $ruleset->check($value);
+                $errors = $ruleset->check($value, $data);
                 if ($errors) {
                     $this->recordErrors($currentPatternPart, $errors);
                     $invalid = true;
