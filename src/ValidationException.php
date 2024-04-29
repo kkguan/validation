@@ -6,7 +6,8 @@ use JetBrains\PhpStorm\Pure;
 
 class ValidationException extends \Exception
 {
-    #[Pure] public function __construct(protected array $errors)
+    #[Pure]
+    public function __construct(protected array $errors)
     {
         parent::__construct('The given data was invalid');
     }
