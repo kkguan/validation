@@ -4,11 +4,11 @@ namespace KK\Validation\Adapter;
 
 use Hyperf\Contract\TranslatorInterface;
 use Hyperf\Contract\ValidatorInterface;
-use Hyperf\Utils\Arr;
-use Hyperf\Utils\Contracts\MessageBag as MessageBagContract;
-use Hyperf\Utils\Fluent;
-use Hyperf\Utils\MessageBag;
-use Hyperf\Utils\Str;
+use Hyperf\Collection\Arr;
+use Hyperf\Contract\MessageBag as MessageBagContract;
+use Hyperf\Support\Fluent;
+use Hyperf\Support\MessageBag;
+use Hyperf\Stringable\Str;
 use Hyperf\Validation\Concerns;
 use Hyperf\Validation\Contract\PresenceVerifierInterface;
 use Hyperf\Validation\ValidationException;
@@ -16,6 +16,9 @@ use Hyperf\Validation\ValidationRuleParser;
 use KK\Validation\Validator;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
+
+use function Hyperf\Collection\data_get;
+use function Hyperf\Collection\collect;
 
 class HyperfValidator implements ValidatorInterface
 {
@@ -337,7 +340,7 @@ class HyperfValidator implements ValidatorInterface
     /**
      * Get the Presence Verifier implementation.
      *
-     *@throws \RuntimeException
+     * @throws \RuntimeException
      */
     public function getPresenceVerifier(): PresenceVerifierInterface
     {

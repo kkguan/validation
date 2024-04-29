@@ -11,12 +11,13 @@
     "description": "KK validation library",
     "require": {
         "php": ">=8.0",
-        "ext-mbstring": "*",
-        "ext-ctype": "*"
+        "ext-ctype": "*",
+        "ext-mbstring": "*"
     },
     "require-dev": {
-        "hyperf/utils": "^2.2",
-        "hyperf/validation": "^2.2",
+        "hyperf/server": "^3.0",
+        "hyperf/utils": "^3.0",
+        "hyperf/validation": "^3.0",
         "jchook/phpunit-assert-throws": "^1.0",
         "mockery/mockery": "^1.4",
         "phpunit/phpunit": "^9.5"
@@ -36,6 +37,11 @@
     "config": {
         "optimize-autoloader": true,
         "sort-packages": true
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.3-dev"
+        }
     },
     "scripts": {
         "test": "phpunit -c phpunit.xml --colors=always"
