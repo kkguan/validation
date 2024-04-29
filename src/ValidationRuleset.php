@@ -3,6 +3,7 @@
 namespace KK\Validation;
 
 use Closure;
+use Hyperf\Validation\ValidationRuleParser;
 use InvalidArgumentException;
 use JetBrains\PhpStorm\Pure;
 use SplFileInfo;
@@ -116,8 +117,9 @@ class ValidationRuleset
                     if (count($ruleArgs) !== 2) {
                         throw new InvalidArgumentException("Rule '{$rule}' require 2 parameter");
                     }
+                    $name = "{$rule}:{$ruleArgs[0]},{$ruleArgs[1]}";
                     $ruleArgs[] = 'validateRequired' . static::fetchTypedRule($ruleMap);
-                    $rules[] = ValidationRule::make('required_if', static::getClosure('validateRequiredIf'), $ruleArgs);
+                    $rules[] = ValidationRule::make($name, static::getClosure('validateRequiredIf'), $ruleArgs)->setRule($rule);
                     break;
                 case 'nullable':
                     $flags |= static::FLAG_NULLABLE;
@@ -207,7 +209,7 @@ class ValidationRuleset
     /**
      * @return string[] Error attribute names
      */
-    public function check(mixed $data, array $attributes = []): array
+    public function check(mixed $data, array $attributes = [], ?string $ruleName = null): array
     {
         if (($this->flags & static::FLAG_NULLABLE) && $data === null) {
             return [];
@@ -216,6 +218,10 @@ class ValidationRuleset
         $errors = [];
 
         foreach ($this->rules as $rule) {
+            if ($ruleName && $ruleName !== $rule->rule) {
+                continue;
+            }
+
             $closure = $rule->closure;
             $valid = $closure($data, $attributes, ...$rule->args);
             if (!$valid) {
@@ -352,6 +358,9 @@ class ValidationRuleset
     {
         if (array_key_exists($key, $attributes)) {
             if ($attributes[$key] == $keyValue) {
+                if ($value === null) {
+                    return false;
+                }
                 return self::$validator($value, $attributes);
             }
         }
@@ -422,13 +431,13 @@ class ValidationRuleset
     protected static function validateMin(mixed $value, array $attributes, int|float $min): bool
     {
         // TODO: file min support b, kb, mb, gb ...
-        return static::getLength($value) >= $min;
+        return static::getLength($value, $attributes) >= $min;
     }
 
     protected static function validateMax(mixed $value, array $attributes, int|float $max): bool
     {
         // TODO: file max support b, kb, mb, gb ...
-        return static::getLength($value) <= $max;
+        return static::getLength($value, $attributes) <= $max;
     }
 
     protected static function validateMinInteger(int $value, array $attributes, int|float $min): bool
