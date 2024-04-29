@@ -41,6 +41,7 @@ class ValidationRuleset
 
     protected const PRIORITY_MAP = [
         'required' => 50,
+        'required_if' => 50,
         'numeric' => 100,
         'integer' => 100,
         'string' => 100,
@@ -110,6 +111,8 @@ class ValidationRuleset
                     if (!isset($ruleMap['numeric']) && !isset($ruleMap['integer'])) {
                         $rules[] = ValidationRule::make('required', static::getClosure('validateRequired' . static::fetchTypedRule($ruleMap)));
                     }
+                    break;
+                case 'required_if':
                     break;
                 case 'nullable':
                     $flags |= static::FLAG_NULLABLE;
