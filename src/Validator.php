@@ -112,10 +112,16 @@ class Validator
                         $this->recordError($currentPatternPart, 'required');
                         $invalid = true;
                     }
+
+                    if($errors = $ruleset->check(null, $data, 'required_if')){
+                        $this->recordErrors($currentPatternPart, $errors);
+                        $invalid = true;
+                    }
+
                     continue;
                 }
                 $value = $data[$currentPatternPart];
-                $errors = $ruleset->check($value);
+                $errors = $ruleset->check($value, $data);
                 if ($errors) {
                     $this->recordErrors($currentPatternPart, $errors);
                     $invalid = true;
