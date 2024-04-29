@@ -38,6 +38,11 @@
         "optimize-autoloader": true,
         "sort-packages": true
     },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.3-dev"
+        }
+    },
     "scripts": {
         "test": "phpunit -c phpunit.xml --colors=always"
     }
