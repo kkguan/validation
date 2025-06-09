@@ -56,6 +56,39 @@ class HyperfValidatorTest extends TestCase
         $this->assertTrue($validator->fails());
     }
 
+    public function testMaxArray()
+    {
+        $validator = $this->makeValidator(['id' => [1,2,3]], ['id' => 'max:2']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['id' => [1,2,3]], ['id' => 'max:3']);
+        $this->assertFalse($validator->fails());
+    }
+
+    public function testRequiredIfArray()
+    {
+        $validator = $this->makeValidator(['id' => 3, 'type' => 1], ['id' => 'required_if:type,1,2,3', 'type' => 'required']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['type' => 2], ['id' => 'required_if:type,1,2,3']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testRequiredIfArray2()
+    {
+        $validator = $this->makeValidator(['type' => 1], ['id' => 'array|required_if:type,1,2,3']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['type' => 1, 'id' => ['1']], ['id' => 'array|required_if:type,1,2,3']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['type' => 1, 'id' => '1'], ['id' => 'array|required_if:type,1,2,3']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['type' => 5], ['id' => 'array|required_if:type,1,2,3']);
+        $this->assertFalse($validator->fails());
+    }
+
     public function testGetMessageBag()
     {
         $data = [['id' => 256], ['id' => 'required|integer|max:255']];
