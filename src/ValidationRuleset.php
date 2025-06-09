@@ -476,6 +476,16 @@ class ValidationRuleset
         return mb_strlen($value) <= $max;
     }
 
+    protected static function validateMinArray(array $value, array $attributes, int|float $min): bool
+    {
+        return count($value) >= $min;
+    }
+
+    protected static function validateMaxArray(array $value, array $attributes, int|float $max): bool
+    {
+        return count($value) <= $max;
+    }
+
     #[Pure]
     protected static function validateInList(mixed $value, array $attributes, array $list): bool
     {
