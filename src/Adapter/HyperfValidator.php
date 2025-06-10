@@ -1,14 +1,20 @@
 <?php
 
+declare(strict_types=1);
+/**
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
+ */
+
 namespace KK\Validation\Adapter;
 
-use Hyperf\Contract\TranslatorInterface;
-use Hyperf\Contract\ValidatorInterface;
 use Hyperf\Collection\Arr;
 use Hyperf\Contract\MessageBag as MessageBagContract;
+use Hyperf\Contract\TranslatorInterface;
+use Hyperf\Contract\ValidatorInterface;
+use Hyperf\Stringable\Str;
 use Hyperf\Support\Fluent;
 use Hyperf\Support\MessageBag;
-use Hyperf\Stringable\Str;
 use Hyperf\Validation\Concerns;
 use Hyperf\Validation\Contract\PresenceVerifierInterface;
 use Hyperf\Validation\ValidationException;
@@ -17,8 +23,8 @@ use KK\Validation\Validator;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 
-use function Hyperf\Collection\data_get;
 use function Hyperf\Collection\collect;
+use function Hyperf\Collection\data_get;
 
 class HyperfValidator implements ValidatorInterface
 {
@@ -155,7 +161,7 @@ class HyperfValidator implements ValidatorInterface
     /**
      * The Presence Verifier implementation.
      *
-     * @var \Hyperf\Validation\Contract\PresenceVerifierInterface
+     * @var PresenceVerifierInterface
      */
     protected $presenceVerifier;
 
@@ -230,10 +236,15 @@ class HyperfValidator implements ValidatorInterface
         }
 
         $results = [];
-
         $missingValue = Str::random(10);
 
-        foreach (array_keys($this->getRules()) as $key) {
+        foreach ($this->getRules() as $key => $rules) {
+            // 跳过包含通配符的规则键，避免创建虚拟的["*"]键
+            // 这些规则只用于验证，不应该影响最终的数据结构
+            if (is_string($key) && str_contains($key, '*')) {
+                continue;
+            }
+
             $value = data_get($this->getData(), $key, $missingValue);
 
             if ($value !== $missingValue) {
@@ -340,7 +351,7 @@ class HyperfValidator implements ValidatorInterface
     /**
      * Get the Presence Verifier implementation.
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function getPresenceVerifier(): PresenceVerifierInterface
     {

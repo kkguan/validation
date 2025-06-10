@@ -1,5 +1,11 @@
 <?php
 
+declare(strict_types=1);
+/**
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
+ */
+
 namespace KK\Validation;
 
 use function array_key_exists;
@@ -25,7 +31,8 @@ class Validator
         foreach ($rules as $pattern => $ruleString) {
             $ruleset = ValidationRuleset::make($ruleString);
             $validationPairs[] = new ValidationPair(
-                $pattern, $ruleset
+                $pattern,
+                $ruleset
             );
         }
         $this->validationPairs = $validationPairs;
@@ -42,7 +49,7 @@ class Validator
     public function validate(array $data): array
     {
         $result = $this->valid($data);
-        if (!empty($this->errors)) {
+        if (! empty($this->errors)) {
             throw new ValidationException($this->errors);
         }
 
@@ -50,7 +57,7 @@ class Validator
     }
 
     /**
-     * Get last errors
+     * Get last errors.
      * @return string[][]
      */
     public function errors(): array
@@ -67,10 +74,8 @@ class Validator
     }
 
     /**
-     * @param array $data
      * @param ValidationPair[] $validationPairs
      * @param string[] $currentDir
-     * @return array
      */
     protected function validRecursive(array $data, array $validationPairs, array $currentDir = []): array
     {
@@ -107,13 +112,13 @@ class Validator
                 }
             } else {
                 /* Check required fields */
-                if (!array_key_exists($currentPatternPart, $data)) {
+                if (! array_key_exists($currentPatternPart, $data)) {
                     if ($ruleset->isDefinitelyRequired()) {
                         $this->recordError($currentPatternPart, 'required');
                         $invalid = true;
                     }
 
-                    if($errors = $ruleset->check(null, $data, 'required_if')){
+                    if ($errors = $ruleset->check(null, $data, 'required_if')) {
                         $this->recordErrors($currentPatternPart, $errors);
                         $invalid = true;
                     }
@@ -136,7 +141,7 @@ class Validator
                 /* required but not found | not definitely required | nullable */
                 continue;
             }
-            if (!is_array($value)) {
+            if (! is_array($value)) {
                 $this->recordError($deeperPatternPart, 'array');
                 $invalid = true;
                 continue;
@@ -156,7 +161,7 @@ class Validator
             foreach ($data as $key => $value) {
                 $nextDir = $currentDir;
                 $nextDir[] = $key;
-                if (!is_array($value)) {
+                if (! is_array($value)) {
                     $this->recordError($key, 'array');
                     $invalid = true;
                     continue;

@@ -1,6 +1,10 @@
 <?php
 
 declare(strict_types=1);
+/**
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
+ */
 
 namespace KKTest\Validation;
 
@@ -12,6 +16,7 @@ use KK\Validation\Adapter\HyperfValidator;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+
 use function extension_loaded;
 
 /**
@@ -22,7 +27,7 @@ class HyperfValidatorTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!extension_loaded('swow') && !extension_loaded('swoole')) {
+        if (! extension_loaded('swow') && ! extension_loaded('swoole')) {
             $this->markTestSkipped('Swow/Swoole extension is unavailable');
         }
     }
@@ -58,10 +63,10 @@ class HyperfValidatorTest extends TestCase
 
     public function testMaxArray()
     {
-        $validator = $this->makeValidator(['id' => [1,2,3]], ['id' => 'max:2']);
+        $validator = $this->makeValidator(['id' => [1, 2, 3]], ['id' => 'max:2']);
         $this->assertTrue($validator->fails());
 
-        $validator = $this->makeValidator(['id' => [1,2,3]], ['id' => 'max:3']);
+        $validator = $this->makeValidator(['id' => [1, 2, 3]], ['id' => 'max:3']);
         $this->assertFalse($validator->fails());
     }
 
@@ -320,6 +325,80 @@ class HyperfValidatorTest extends TestCase
 
         $validator = $this->makeValidator(['flag' => 'true'], ['flag' => 'nullable|boolean:strict']);
         $this->assertTrue($validator->fails());
+    }
+
+    public function testArray()
+    {
+        $rules = [
+            'info' => 'array',
+            'info.*.id' => 'required|integer',
+            'info.*.name' => 'required',
+        ];
+        $data = [
+            'info' => [
+                [
+                    'id' => 1,
+                    'name' => 'kk',
+                ],
+                [
+                    'id' => 2,
+                    'name' => 'kk2',
+                ],
+            ],
+        ];
+        $validator = $this->makeValidator($data, $rules);
+        $this->assertFalse($validator->fails());
+        $this->assertEquals($data, $validator->validated());
+    }
+
+    public function testArray2()
+    {
+        $rules = [
+            'info' => 'array',
+            'info.id' => 'required|integer',
+            'info.name' => 'required|string',
+        ];
+
+        $validator = $this->makeValidator([
+            'info' => [
+                'id' => 1,
+                'name' => 'kk',
+            ],
+        ], $rules);
+        $this->assertFalse($validator->fails());
+        $this->assertEquals([
+            'info' => [
+                'id' => 1,
+                'name' => 'kk',
+            ],
+        ], $validator->validated());
+    }
+
+    public function testArray3()
+    {
+        $rules = [
+            'info' => 'array',
+            'info.*.class' => 'array',
+            'info.*.class.*.id' => 'required|integer',
+            'info.*.class.*.name' => 'required|string',
+        ];
+
+        $data = [
+            'info' => [
+                [
+                    'class' => [
+                        [
+                            'id' => 1,
+                            'name' => 'kk',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $validator = $this->makeValidator($data, $rules);
+        $this->assertFalse($validator->fails());
+        $this->assertEquals($data, $validator->validated());
     }
 
     protected function makeValidator(array $data, array $rules, array $messages = [], array $customAttributes = [])

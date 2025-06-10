@@ -1,5 +1,11 @@
 <?php
 
+declare(strict_types=1);
+/**
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
+ */
+
 namespace KK\Validation;
 
 use function implode;

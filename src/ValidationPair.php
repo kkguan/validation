@@ -1,12 +1,18 @@
 <?php
 
+declare(strict_types=1);
+/**
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
+ */
+
 namespace KK\Validation;
 
 use InvalidArgumentException;
+
 use function array_map;
 use function count;
 use function explode;
-use function implode;
 
 class ValidationPair
 {

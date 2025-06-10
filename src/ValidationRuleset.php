@@ -1,13 +1,19 @@
 <?php
 
+declare(strict_types=1);
+/**
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
+ */
+
 namespace KK\Validation;
 
 use Closure;
-use Hyperf\Validation\ValidationRuleParser;
 use InvalidArgumentException;
 use JetBrains\PhpStorm\Pure;
 use SplFileInfo;
 use SplPriorityQueue;
+
 use function array_map;
 use function count;
 use function ctype_space;
@@ -30,6 +36,7 @@ use function strtolower;
 use function strtoupper;
 use function trim;
 use function ucwords;
+
 use const FILTER_FLAG_IPV4;
 use const FILTER_FLAG_IPV6;
 use const FILTER_VALIDATE_IP;
@@ -37,7 +44,9 @@ use const FILTER_VALIDATE_IP;
 class ValidationRuleset
 {
     protected const FLAG_SOMETIMES = 1 << 0;
+
     protected const FLAG_REQUIRED = 1 << 1;
+
     protected const FLAG_NULLABLE = 1 << 2;
 
     protected const PRIORITY_MAP = [
@@ -77,7 +86,7 @@ class ValidationRuleset
         'numeric',
         'string',
         'array',
-        'boolean'
+        'boolean',
     ];
 
     protected static array $stringToBoolMap = [
@@ -97,13 +106,6 @@ class ValidationRuleset
     /** @var Closure[] */
     protected static array $closureCache = [];
 
-    public static function make(string $ruleString): static
-    {
-        $ruleMap = static::convertRuleStringToRuleMap($ruleString);
-        $hash = static::getHashOfRuleMap($ruleMap);
-        return static::$pool[$hash] ?? (static::$pool[$hash] = new static($ruleMap));
-    }
-
     protected function __construct(array $ruleMap)
     {
         $flags = 0;
@@ -116,7 +118,7 @@ class ValidationRuleset
                     break;
                 case 'required':
                     $flags |= static::FLAG_REQUIRED;
-                    if (!isset($ruleMap['numeric']) && !isset($ruleMap['integer'])) {
+                    if (! isset($ruleMap['numeric']) && ! isset($ruleMap['integer'])) {
                         $rules[] = ValidationRule::make('required', static::getClosure('validateRequired' . static::fetchTypedRule($ruleMap)));
                     }
                     break;
@@ -157,7 +159,7 @@ class ValidationRuleset
                     if (count($ruleArgs) !== 1) {
                         throw new InvalidArgumentException("Rule '{$rule}' require 1 parameter");
                     }
-                    if (!is_numeric($ruleArgs[0])) {
+                    if (! is_numeric($ruleArgs[0])) {
                         throw new InvalidArgumentException("Rule '{$rule}' require numeric parameters");
                     }
                     $ruleArgs[0] += 0;
@@ -212,9 +214,16 @@ class ValidationRuleset
         $this->rules = $rules;
     }
 
+    public static function make(string $ruleString): static
+    {
+        $ruleMap = static::convertRuleStringToRuleMap($ruleString);
+        $hash = static::getHashOfRuleMap($ruleMap);
+        return static::$pool[$hash] ?? (static::$pool[$hash] = new static($ruleMap));
+    }
+
     public function isDefinitelyRequired(): bool
     {
-        return ($this->flags & static::FLAG_REQUIRED) && !($this->flags & static::FLAG_SOMETIMES);
+        return ($this->flags & static::FLAG_REQUIRED) && ! ($this->flags & static::FLAG_SOMETIMES);
     }
 
     /**
@@ -243,7 +252,7 @@ class ValidationRuleset
 
             $closure = $rule->closure;
             $valid = $closure($data, $attributes, ...$rule->args);
-            if (!$valid) {
+            if (! $valid) {
                 $errors[] = $rule->name;
                 /* Always bail here, for example:
                  * if we have a rule like `integer|max:255`,
@@ -256,6 +265,36 @@ class ValidationRuleset
         }
 
         return $errors;
+    }
+
+    public static function validateAlpha(string $value, array $attributes): bool
+    {
+        return preg_match('/^[\pL\pM]+$/u', $value);
+    }
+
+    public static function validateAlphaNum(string $value, array $attributes): bool
+    {
+        return preg_match('/^[\pL\pM\pN]+$/u', $value) > 0;
+    }
+
+    public static function validateAlphaDash(string $value, array $attributes): bool
+    {
+        return preg_match('/^[\pL\pM\pN_-]+$/u', $value) > 0;
+    }
+
+    public static function validateIP(string $value, array $attributes): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_IP) !== false;
+    }
+
+    public static function validateIPV4(string $value, array $attributes): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+    }
+
+    public static function validateIPV6(string $value, array $attributes): bool
+    {
+        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
 
     protected static function getHashOfRuleMap(array $ruleMap): string
@@ -280,7 +319,7 @@ class ValidationRuleset
         foreach ($rules as $rule) {
             $ruleParts = explode(':', $rule, 2);
             $rule = strtolower(trim($ruleParts[0]));
-            if (!isset(static::PRIORITY_MAP[$rule])) {
+            if (! isset(static::PRIORITY_MAP[$rule])) {
                 throw new InvalidArgumentException("Unknown rule '{$rule}'");
             }
             if (($ruleParts[1] ?? '') !== '') {
@@ -297,13 +336,13 @@ class ValidationRuleset
             }
             $extraRuleMap = static::convertRuleStringToRuleMap($implicitDependencyRuleset, false);
             foreach ($extraRuleMap as $extraRule => $extraRuleArgs) {
-                if (!isset($tmpRuleMap[$extraRule])) {
+                if (! isset($tmpRuleMap[$extraRule])) {
                     $tmpRuleMap[$extraRule] = $extraRuleArgs;
                 }
             }
         }
 
-        if (!$solvePriority) {
+        if (! $solvePriority) {
             return $tmpRuleMap;
         }
 
@@ -312,7 +351,7 @@ class ValidationRuleset
             $ruleQueue->insert([$rule, $ruleArgs], static::PRIORITY_MAP[$rule]);
         }
         $ruleMap = [];
-        while (!$ruleQueue->isEmpty()) {
+        while (! $ruleQueue->isEmpty()) {
             [$rule, $ruleArgs] = $ruleQueue->extract();
             if (isset($ruleMap[$rule])) {
                 throw new InvalidArgumentException("Duplicated rule '{$rule}' in ruleset '{$ruleString}'");
@@ -344,15 +383,14 @@ class ValidationRuleset
     {
         if (count($ruleArgs) === 0) {
             return $rule;
-        } else {
-            return $rule . ':' . implode(',', $ruleArgs);
         }
+        return $rule . ':' . implode(',', $ruleArgs);
     }
 
     protected static function getClosure(string $method): Closure
     {
-        return static::$closureCache[$method] ??
-            (static::$closureCache[$method] = Closure::fromCallable([static::class, $method]));
+        return static::$closureCache[$method]
+            ?? (static::$closureCache[$method] = Closure::fromCallable([static::class, $method]));
     }
 
     protected static function validateRequired(mixed $value, array $attributes): bool
@@ -392,7 +430,7 @@ class ValidationRuleset
 
     protected static function validateRequiredString(mixed $value, array $attributes): bool
     {
-        return $value !== '' && !ctype_space($value);
+        return $value !== '' && ! ctype_space($value);
     }
 
     protected static function validateRequiredArray(array $value, array $attributes): bool
@@ -407,7 +445,7 @@ class ValidationRuleset
 
     protected static function validateNumeric(mixed &$value, array $attributes): bool
     {
-        if (!is_numeric($value)) {
+        if (! is_numeric($value)) {
             return false;
         }
         $value += 0;
@@ -437,67 +475,71 @@ class ValidationRuleset
     {
         if (is_numeric($value)) {
             return $value + 0;
-        } elseif (is_string($value)) {
+        }
+        if (is_string($value)) {
             return mb_strlen($value);
-        } elseif (is_array($value)) {
+        }
+        if (is_array($value)) {
             return count($value);
-        } elseif ($value === null) {
+        }
+        if ($value === null) {
             return 0;
-        } elseif ($value instanceof SplFileInfo) {
+        }
+        if ($value instanceof SplFileInfo) {
             return $value->getSize();
         }
 
         return mb_strlen((string) $value);
     }
 
-    protected static function validateMin(mixed $value, array $attributes, int|float $min): bool
+    protected static function validateMin(mixed $value, array $attributes, float|int $min): bool
     {
         // TODO: file min support b, kb, mb, gb ...
         return static::getLength($value, $attributes) >= $min;
     }
 
-    protected static function validateMax(mixed $value, array $attributes, int|float $max): bool
+    protected static function validateMax(mixed $value, array $attributes, float|int $max): bool
     {
         // TODO: file max support b, kb, mb, gb ...
         return static::getLength($value, $attributes) <= $max;
     }
 
-    protected static function validateMinInteger(int $value, array $attributes, int|float $min): bool
+    protected static function validateMinInteger(int $value, array $attributes, float|int $min): bool
     {
         return $value >= $min;
     }
 
-    protected static function validateMaxInteger(int $value, array $attributes, int|float $max): bool
+    protected static function validateMaxInteger(int $value, array $attributes, float|int $max): bool
     {
         return $value <= $max;
     }
 
-    protected static function validateMinNumeric(int|float $value, array $attributes, int|float $min): bool
+    protected static function validateMinNumeric(float|int $value, array $attributes, float|int $min): bool
     {
         return $value >= $min;
     }
 
-    protected static function validateMaxNumeric(int|float $value, array $attributes, int|float $max): bool
+    protected static function validateMaxNumeric(float|int $value, array $attributes, float|int $max): bool
     {
         return $value <= $max;
     }
 
-    protected static function validateMinString(string $value, array $attributes, int|float $min): bool
+    protected static function validateMinString(string $value, array $attributes, float|int $min): bool
     {
         return mb_strlen($value) >= $min;
     }
 
-    protected static function validateMaxString(string $value, array $attributes, int|float $max): bool
+    protected static function validateMaxString(string $value, array $attributes, float|int $max): bool
     {
         return mb_strlen($value) <= $max;
     }
 
-    protected static function validateMinArray(array $value, array $attributes, int|float $min): bool
+    protected static function validateMinArray(array $value, array $attributes, float|int $min): bool
     {
         return count($value) >= $min;
     }
 
-    protected static function validateMaxArray(array $value, array $attributes, int|float $max): bool
+    protected static function validateMaxArray(array $value, array $attributes, float|int $max): bool
     {
         return count($value) <= $max;
     }
@@ -505,11 +547,10 @@ class ValidationRuleset
     #[Pure]
     protected static function validateInList(mixed $value, array $attributes, array $list): bool
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return in_array((string) $value, $list, true);
-        } else {
-            return static::validateInListArray($value, $list);
         }
+        return static::validateInListArray($value, $list);
     }
 
     protected static function validateInListArray(array $value, array $attributes, array $list): bool
@@ -518,7 +559,7 @@ class ValidationRuleset
             if (is_array($item)) {
                 return false;
             }
-            if (!in_array((string) $item, $list, true)) {
+            if (! in_array((string) $item, $list, true)) {
                 return false;
             }
         }
@@ -528,11 +569,10 @@ class ValidationRuleset
     #[Pure]
     protected static function validateInMap(mixed $value, array $attributes, array $map): bool
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return $map[(string) $value] ?? false;
-        } else {
-            return static::validateInMapArray($value, $map);
         }
+        return static::validateInMapArray($value, $map);
     }
 
     protected static function validateInMapArray(array $value, array $attributes, array $map): bool
@@ -541,41 +581,11 @@ class ValidationRuleset
             if (is_array($item)) {
                 return false;
             }
-            if (!isset($map[(string) $item])) {
+            if (! isset($map[(string) $item])) {
                 return false;
             }
         }
         return true;
-    }
-
-    public static function validateAlpha(string $value, array $attributes): bool
-    {
-        return preg_match('/^[\pL\pM]+$/u', $value);
-    }
-
-    public static function validateAlphaNum(string $value, array $attributes): bool
-    {
-        return preg_match('/^[\pL\pM\pN]+$/u', $value) > 0;
-    }
-
-    public static function validateAlphaDash(string $value, array $attributes): bool
-    {
-        return preg_match('/^[\pL\pM\pN_-]+$/u', $value) > 0;
-    }
-
-    public static function validateIP(string $value, array $attributes): bool
-    {
-        return filter_var($value, FILTER_VALIDATE_IP) !== false;
-    }
-
-    public static function validateIPV4(string $value, array $attributes): bool
-    {
-        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
-    }
-
-    public static function validateIPV6(string $value, array $attributes): bool
-    {
-        return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
     }
 
     protected static function validateBoolean(mixed $value, array $attributes): bool
@@ -592,8 +602,8 @@ class ValidationRuleset
         return is_bool($value);
     }
 
-    protected static function validateRequiredBoolean(bool $value, array $attributes): bool
+    protected static function validateRequiredBoolean(mixed $value, array $attributes): bool
     {
-        return true;
+        return self::validateBoolean($value, $attributes);
     }
 }
