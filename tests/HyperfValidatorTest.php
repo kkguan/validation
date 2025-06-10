@@ -44,6 +44,18 @@ class HyperfValidatorTest extends TestCase
         $this->assertFalse($validator->fails());
     }
 
+    public function testRequiredIf()
+    {
+        $validator = $this->makeValidator(['type' => 1], ['id' => 'required_if:type,1', 'type' => 'required']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testMax()
+    {
+        $validator = $this->makeValidator(['id' => 256], ['id' => 'max:255']);
+        $this->assertTrue($validator->fails());
+    }
+
     public function testGetMessageBag()
     {
         $data = [['id' => 256], ['id' => 'required|integer|max:255']];

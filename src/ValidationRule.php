@@ -24,10 +24,19 @@ class ValidationRule
         return static::$pool[$hash] ?? (static::$pool[$hash] = new static($name, $closure, $args));
     }
 
+    public string $rule;
+
     protected function __construct(
         public string $name,
         public Closure $closure,
         public array $args = []
     ) {
+        $this->rule = $this->name;
+    }
+
+    public function setRule(string $rule): static
+    {
+        $this->rule = $rule;
+        return $this;
     }
 }
