@@ -125,6 +125,203 @@ class HyperfValidatorTest extends TestCase
         $this->assertEquals($errors, $errors2);
     }
 
+    public function testBoolean()
+    {
+        // 测试普通 boolean 验证 - 应该通过的值
+        $validator = $this->makeValidator(['flag' => true], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => false], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 1], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 0], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '1'], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '0'], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'true'], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'false'], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'TRUE'], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'FALSE'], ['flag' => 'boolean']);
+        $this->assertFalse($validator->fails());
+
+        // 测试普通 boolean 验证 - 应该失败的值
+        $validator = $this->makeValidator(['flag' => 'yes'], ['flag' => 'boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'no'], ['flag' => 'boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '2'], ['flag' => 'boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 2], ['flag' => 'boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => []], ['flag' => 'boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'invalid'], ['flag' => 'boolean']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testBooleanStrict()
+    {
+        // 测试严格 boolean 验证 - 应该通过的值
+        $validator = $this->makeValidator(['flag' => true], ['flag' => 'boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => false], ['flag' => 'boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        // 测试严格 boolean 验证 - 应该失败的值
+        $validator = $this->makeValidator(['flag' => 1], ['flag' => 'boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 0], ['flag' => 'boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '1'], ['flag' => 'boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '0'], ['flag' => 'boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'true'], ['flag' => 'boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'false'], ['flag' => 'boolean:strict']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testRequiredBoolean()
+    {
+        // 测试 required boolean 组合 - 应该通过的值
+        $validator = $this->makeValidator(['flag' => true], ['flag' => 'required|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => false], ['flag' => 'required|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 1], ['flag' => 'required|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 0], ['flag' => 'required|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '1'], ['flag' => 'required|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '0'], ['flag' => 'required|boolean']);
+        $this->assertFalse($validator->fails());
+
+        // 测试 required boolean 组合 - 应该失败的值
+        $validator = $this->makeValidator([], ['flag' => 'required|boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => null], ['flag' => 'required|boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => ''], ['flag' => 'required|boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'invalid'], ['flag' => 'required|boolean']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testRequiredBooleanStrict()
+    {
+        // 测试 required boolean:strict 组合 - 应该通过的值
+        $validator = $this->makeValidator(['flag' => true], ['flag' => 'required|boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => false], ['flag' => 'required|boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        // 测试 required boolean:strict 组合 - 应该失败的值
+        $validator = $this->makeValidator([], ['flag' => 'required|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => null], ['flag' => 'required|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 1], ['flag' => 'required|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 0], ['flag' => 'required|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '1'], ['flag' => 'required|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'true'], ['flag' => 'required|boolean:strict']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testNullableBoolean()
+    {
+        // 测试 nullable boolean 组合 - null 值应该通过
+        $validator = $this->makeValidator(['flag' => null], ['flag' => 'nullable|boolean']);
+        $this->assertFalse($validator->fails());
+
+        // 测试 nullable boolean 组合 - 有效的 boolean 值应该通过
+        $validator = $this->makeValidator(['flag' => true], ['flag' => 'nullable|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => false], ['flag' => 'nullable|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 1], ['flag' => 'nullable|boolean']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '0'], ['flag' => 'nullable|boolean']);
+        $this->assertFalse($validator->fails());
+
+        // 测试 nullable boolean 组合 - 无效值应该失败
+        $validator = $this->makeValidator(['flag' => 'invalid'], ['flag' => 'nullable|boolean']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => []], ['flag' => 'nullable|boolean']);
+        $this->assertTrue($validator->fails());
+    }
+
+    public function testNullableBooleanStrict()
+    {
+        // 测试 nullable boolean:strict 组合 - null 值应该通过
+        $validator = $this->makeValidator(['flag' => null], ['flag' => 'nullable|boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        // 测试 nullable boolean:strict 组合 - 只有真正的 boolean 值应该通过
+        $validator = $this->makeValidator(['flag' => true], ['flag' => 'nullable|boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => false], ['flag' => 'nullable|boolean:strict']);
+        $this->assertFalse($validator->fails());
+
+        // 测试 nullable boolean:strict 组合 - 非严格 boolean 值应该失败
+        $validator = $this->makeValidator(['flag' => 1], ['flag' => 'nullable|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => '1'], ['flag' => 'nullable|boolean:strict']);
+        $this->assertTrue($validator->fails());
+
+        $validator = $this->makeValidator(['flag' => 'true'], ['flag' => 'nullable|boolean:strict']);
+        $this->assertTrue($validator->fails());
+    }
+
     protected function makeValidator(array $data, array $rules, array $messages = [], array $customAttributes = [])
     {
         $factory = new ValidatorFactory($this->getTranslator(), $this->getContainer());
