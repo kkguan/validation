@@ -606,8 +606,8 @@ class ValidationRuleset
         return is_bool($value);
     }
 
-    protected static function validateRequiredBoolean(bool $value, array $attributes): bool
+    protected static function validateRequiredBoolean(mixed $value, array $attributes): bool
     {
-        return true;
+        return self::validateBoolean($value, $attributes);
     }
 }
