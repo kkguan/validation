@@ -2,12 +2,8 @@
 
 declare(strict_types=1);
 /**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ *  本文件属于KK馆版权所有。
+ *  This file belong to KKGUAN.
  */
 
 namespace KK\Validation\Adapter;
@@ -243,7 +239,6 @@ class HyperfValidator implements ValidatorInterface
         $missingValue = Str::random(10);
 
         foreach ($this->getRules() as $key => $rules) {
-
             // 跳过包含通配符的规则键，避免创建虚拟的["*"]键
             // 这些规则只用于验证，不应该影响最终的数据结构
             if (is_string($key) && str_contains($key, '*')) {
