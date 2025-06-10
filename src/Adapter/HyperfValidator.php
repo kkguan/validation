@@ -243,18 +243,17 @@ class HyperfValidator implements ValidatorInterface
         $missingValue = Str::random(10);
 
         foreach ($this->getRules() as $key => $rules) {
-            $keyString = (string) $key;
 
             // 跳过包含通配符的规则键，避免创建虚拟的["*"]键
             // 这些规则只用于验证，不应该影响最终的数据结构
-            if (str_contains($keyString, '*')) {
+            if (is_string($key) && str_contains($key, '*')) {
                 continue;
             }
 
-            $value = data_get($this->getData(), $keyString, $missingValue);
+            $value = data_get($this->getData(), $key, $missingValue);
 
             if ($value !== $missingValue) {
-                Arr::set($results, $keyString, $value);
+                Arr::set($results, $key, $value);
             }
         }
 
