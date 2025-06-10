@@ -1,6 +1,14 @@
 <?php
 
 declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 
 namespace KKTest\Validation;
 
@@ -12,6 +20,7 @@ use KK\Validation\Adapter\HyperfValidator;
 use Mockery;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+
 use function extension_loaded;
 
 /**
@@ -22,7 +31,7 @@ class HyperfValidatorTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!extension_loaded('swow') && !extension_loaded('swoole')) {
+        if (! extension_loaded('swow') && ! extension_loaded('swoole')) {
             $this->markTestSkipped('Swow/Swoole extension is unavailable');
         }
     }
@@ -58,10 +67,10 @@ class HyperfValidatorTest extends TestCase
 
     public function testMaxArray()
     {
-        $validator = $this->makeValidator(['id' => [1,2,3]], ['id' => 'max:2']);
+        $validator = $this->makeValidator(['id' => [1, 2, 3]], ['id' => 'max:2']);
         $this->assertTrue($validator->fails());
 
-        $validator = $this->makeValidator(['id' => [1,2,3]], ['id' => 'max:3']);
+        $validator = $this->makeValidator(['id' => [1, 2, 3]], ['id' => 'max:3']);
         $this->assertFalse($validator->fails());
     }
 

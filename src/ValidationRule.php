@@ -1,17 +1,38 @@
 <?php
 
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
+
 namespace KK\Validation;
 
 use Closure;
 use InvalidArgumentException;
 use ReflectionException;
 use ReflectionFunction;
+
 use function serialize;
 
 class ValidationRule
 {
+    public string $rule;
+
     /** @var static[] */
     protected static array $pool = [];
+
+    protected function __construct(
+        public string $name,
+        public Closure $closure,
+        public array $args = []
+    ) {
+        $this->rule = $this->name;
+    }
 
     public static function make(string $name, Closure $closure, array $args = []): static
     {
@@ -22,16 +43,6 @@ class ValidationRule
         }
         $hash = $args === [] ? $methodName : $methodName . ':' . serialize($args);
         return static::$pool[$hash] ?? (static::$pool[$hash] = new static($name, $closure, $args));
-    }
-
-    public string $rule;
-
-    protected function __construct(
-        public string $name,
-        public Closure $closure,
-        public array $args = []
-    ) {
-        $this->rule = $this->name;
     }
 
     public function setRule(string $rule): static

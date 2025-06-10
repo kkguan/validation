@@ -1,14 +1,24 @@
 <?php
 
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
+
 namespace KK\Validation\Adapter;
 
-use Hyperf\Contract\TranslatorInterface;
-use Hyperf\Contract\ValidatorInterface;
 use Hyperf\Collection\Arr;
 use Hyperf\Contract\MessageBag as MessageBagContract;
+use Hyperf\Contract\TranslatorInterface;
+use Hyperf\Contract\ValidatorInterface;
+use Hyperf\Stringable\Str;
 use Hyperf\Support\Fluent;
 use Hyperf\Support\MessageBag;
-use Hyperf\Stringable\Str;
 use Hyperf\Validation\Concerns;
 use Hyperf\Validation\Contract\PresenceVerifierInterface;
 use Hyperf\Validation\ValidationException;
@@ -17,8 +27,8 @@ use KK\Validation\Validator;
 use Psr\Container\ContainerInterface;
 use RuntimeException;
 
-use function Hyperf\Collection\data_get;
 use function Hyperf\Collection\collect;
+use function Hyperf\Collection\data_get;
 
 class HyperfValidator implements ValidatorInterface
 {
@@ -155,7 +165,7 @@ class HyperfValidator implements ValidatorInterface
     /**
      * The Presence Verifier implementation.
      *
-     * @var \Hyperf\Validation\Contract\PresenceVerifierInterface
+     * @var PresenceVerifierInterface
      */
     protected $presenceVerifier;
 
@@ -340,7 +350,7 @@ class HyperfValidator implements ValidatorInterface
     /**
      * Get the Presence Verifier implementation.
      *
-     * @throws \RuntimeException
+     * @throws RuntimeException
      */
     public function getPresenceVerifier(): PresenceVerifierInterface
     {

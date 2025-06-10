@@ -1,5 +1,14 @@
 <?php
 
+declare(strict_types=1);
+/**
+ * This file is part of Hyperf.
+ *
+ * @link     https://www.hyperf.io
+ * @document https://hyperf.wiki
+ * @contact  group@hyperf.io
+ * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
+ */
 require __DIR__ . '/../vendor/autoload.php';
 
 use KK\Validation\ValidationErrorDumper;
@@ -38,11 +47,11 @@ try {
 
 $validator = new Validator([
     'type' => 'required|numeric',
-    'foo.*.bar' => 'numeric|max:256'
+    'foo.*.bar' => 'numeric|max:256',
 ]);
 try {
     $validator->validate([
-        'type' => 'xxx'
+        'type' => 'xxx',
     ]);
 } catch (ValidationException $e) {
     // Attribute 'type' violates the following rules: numeric
@@ -51,7 +60,7 @@ try {
 try {
     $validator->validate([
         'type' => 1,
-        'foo' => [['bar' => '1024']]
+        'foo' => [['bar' => '1024']],
     ]);
 } catch (ValidationException $e) {
     // Attribute 'foo.0.bar' violates the following rules: max:256
@@ -59,11 +68,11 @@ try {
 }
 
 $validator = new Validator([
-    'a.*.b.*.c.*.d.*.e' => 'numeric'
+    'a.*.b.*.c.*.d.*.e' => 'numeric',
 ]);
 try {
     $validator->validate([
-        'a' => [['b' => [['c' => [['d' => [['e' => 'xxx']]]]]]]]
+        'a' => [['b' => [['c' => [['d' => [['e' => 'xxx']]]]]]]],
     ]);
 } catch (ValidationException $e) {
     // Attribute 'a.0.b.0.c.0.d.0.e' violates the following rules: numeric
@@ -71,7 +80,7 @@ try {
 }
 
 $validator = new Validator([
-    '*' => 'numeric'
+    '*' => 'numeric',
 ]);
 try {
     $validator->validate(['0', '1', '2', '3']);
@@ -88,7 +97,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo.*' => 'integer'
+    'foo.*' => 'integer',
 ]);
 try {
     $validator->validate(['foo' => ['0', '0.1', '0.2', '1']]);
@@ -105,7 +114,7 @@ try {
 }
 
 $validator = new Validator([
-    '*.*.*' => 'integer'
+    '*.*.*' => 'integer',
 ]);
 try {
     $validator->validate(['foo' => ['bar' => 'not array']]);
@@ -126,7 +135,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'string|max:255'
+    'foo' => 'string|max:255',
 ]);
 try {
     $validator->validate(['foo' => []]);
@@ -142,7 +151,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'required|max:255'
+    'foo' => 'required|max:255',
 ]);
 try {
     $validator->validate(['foo' => null]);
@@ -158,7 +167,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'max:255'
+    'foo' => 'max:255',
 ]);
 try {
     $validator->validate(['foo' => null]);
@@ -167,7 +176,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'min:1|max:255'
+    'foo' => 'min:1|max:255',
 ]);
 try {
     $validator->validate(['foo' => null]);
@@ -189,7 +198,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'in:1, 2, 3'
+    'foo' => 'in:1, 2, 3',
 ]);
 try {
     $validator->validate(['foo' => null]);
@@ -226,7 +235,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'required|array|in:9, 8, 7, 6, 5, 4, 3' // in map
+    'foo' => 'required|array|in:9, 8, 7, 6, 5, 4, 3', // in map
 ]);
 try {
     $validator->validate(['foo' => []]);
@@ -242,7 +251,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'alpha'
+    'foo' => 'alpha',
 ]);
 try {
     $validator->validate(['foo' => '1']);
@@ -257,7 +266,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'alpha_num'
+    'foo' => 'alpha_num',
 ]);
 try {
     $validator->validate(['foo' => 'xyz123']);
@@ -272,7 +281,7 @@ try {
 }
 
 $validator = new Validator([
-    'foo' => 'alpha_dash'
+    'foo' => 'alpha_dash',
 ]);
 try {
     $validator->validate(['foo' => 'xyz_123-v4']);
