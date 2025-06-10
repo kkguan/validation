@@ -331,6 +331,80 @@ class HyperfValidatorTest extends TestCase
         $this->assertTrue($validator->fails());
     }
 
+    public function testArray()
+    {
+        $rules = [
+            'info' => 'array',
+            'info.*.id' => 'required|integer',
+            'info.*.name' => 'required',
+        ];
+        $data = [
+            'info' => [
+                [
+                    'id' => 1,
+                    'name' => 'kk',
+                ],
+                [
+                    'id' => 2,
+                    'name' => 'kk2',
+                ],
+            ],
+        ];
+        $validator = $this->makeValidator($data, $rules);
+        $this->assertFalse($validator->fails());
+        $this->assertEquals($data, $validator->validated());
+    }
+
+    public function testArray2()
+    {
+        $rules = [
+            'info' => 'array',
+            'info.id' => 'required|integer',
+            'info.name' => 'required|string',
+        ];
+
+        $validator = $this->makeValidator([
+            'info' => [
+                'id' => 1,
+                'name' => 'kk',
+            ],
+        ], $rules);
+        $this->assertFalse($validator->fails());
+        $this->assertEquals([
+            'info' => [
+                'id' => 1,
+                'name' => 'kk',
+            ],
+        ], $validator->validated());
+    }
+
+    public function testArray3()
+    {
+        $rules = [
+            'info' => 'array',
+            'info.*.class' => 'array',
+            'info.*.class.*.id' => 'required|integer',
+            'info.*.class.*.name' => 'required|string',
+        ];
+
+        $data = [
+            'info' => [
+                [
+                    'class' => [
+                        [
+                            'id' => 1,
+                            'name' => 'kk',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+
+        $validator = $this->makeValidator($data, $rules);
+        $this->assertFalse($validator->fails());
+        $this->assertEquals($data, $validator->validated());
+    }
+
     protected function makeValidator(array $data, array $rules, array $messages = [], array $customAttributes = [])
     {
         $factory = new ValidatorFactory($this->getTranslator(), $this->getContainer());
