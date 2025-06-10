@@ -114,12 +114,15 @@ class ValidationRuleset
                     }
                     break;
                 case 'required_if':
-                    if (count($ruleArgs) !== 2) {
-                        throw new InvalidArgumentException("Rule '{$rule}' require 2 parameter");
+                    if (count($ruleArgs) < 2) {
+                        throw new InvalidArgumentException("Rule '{$rule}' must have at least 2 parameters");
                     }
-                    $name = "{$rule}:{$ruleArgs[0]},{$ruleArgs[1]}";
-                    $ruleArgs[] = 'validateRequired' . static::fetchTypedRule($ruleMap);
-                    $rules[] = ValidationRule::make($name, static::getClosure('validateRequiredIf'), $ruleArgs)->setRule($rule);
+                    // 第一个参数是字段名，后续所有参数都是要匹配的值
+                    $fieldName = $ruleArgs[0];
+                    $matchingValues = array_slice($ruleArgs, 1); // 获取所有要匹配的值
+                    $name = "{$rule}:{$fieldName}," . implode(',', $matchingValues);
+                    $closureArgs = [$fieldName, $matchingValues, 'validateRequired' . static::fetchTypedRule($ruleMap)];
+                    $rules[] = ValidationRule::make($name, static::getClosure('validateRequiredIf'), $closureArgs)->setRule($rule);
                     break;
                 case 'nullable':
                     $flags |= static::FLAG_NULLABLE;
@@ -354,14 +357,17 @@ class ValidationRuleset
         return true;
     }
 
-    protected static function validateRequiredIf(mixed $value, array $attributes, string $key, mixed $keyValue, string $validator): bool
+    protected static function validateRequiredIf(mixed $value, array $attributes, string $key, array $keyValues, string $validator): bool
     {
         if (array_key_exists($key, $attributes)) {
-            if ($attributes[$key] == $keyValue) {
-                if ($value === null) {
-                    return false;
+            // 检查字段值是否匹配任何一个指定的值
+            foreach ($keyValues as $keyValue) {
+                if ($attributes[$key] == $keyValue) {
+                    if ($value === null) {
+                        return false;
+                    }
+                    return self::$validator($value, $attributes);
                 }
-                return self::$validator($value, $attributes);
             }
         }
 
@@ -468,6 +474,16 @@ class ValidationRuleset
     protected static function validateMaxString(string $value, array $attributes, int|float $max): bool
     {
         return mb_strlen($value) <= $max;
+    }
+
+    protected static function validateMinArray(array $value, array $attributes, int|float $min): bool
+    {
+        return count($value) >= $min;
+    }
+
+    protected static function validateMaxArray(array $value, array $attributes, int|float $max): bool
+    {
+        return count($value) <= $max;
     }
 
     #[Pure]
