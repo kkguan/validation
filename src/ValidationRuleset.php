@@ -47,6 +47,7 @@ class ValidationRuleset
         'integer' => 100,
         'string' => 100,
         'array' => 100,
+        'boolean' => 100,
         'min' => 10,
         'max' => 10,
         'in' => 10,
@@ -75,7 +76,13 @@ class ValidationRuleset
         'integer',
         'numeric',
         'string',
-        'array'
+        'array',
+        'boolean'
+    ];
+
+    protected static array $stringToBoolMap = [
+        '1' => true, '0' => false,
+        'true' => true, 'false' => false,
     ];
 
     /** @var int base flags */
@@ -183,6 +190,15 @@ class ValidationRuleset
                 case 'ipv4':
                 case 'ipv6':
                     $rules[] = ValidationRule::make($rule, static::getClosure('validate' . strtoupper($rule)));
+                    break;
+                case 'boolean':
+                    if (count($ruleArgs) === 0) {
+                        $rules[] = ValidationRule::make('boolean', static::getClosure('validateBoolean'));
+                    } elseif (count($ruleArgs) === 1 && $ruleArgs[0] === 'strict') {
+                        $rules[] = ValidationRule::make('boolean:strict', static::getClosure('validateBooleanStrict'));
+                    } else {
+                        throw new InvalidArgumentException("Rule 'boolean' only supports 'strict' parameter");
+                    }
                     break;
                 case 'bail':
                     /* compatibility */
@@ -560,5 +576,24 @@ class ValidationRuleset
     public static function validateIPV6(string $value, array $attributes): bool
     {
         return filter_var($value, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false;
+    }
+
+    protected static function validateBoolean(mixed $value, array $attributes): bool
+    {
+        return match (true) {
+            is_bool($value), $value === 1, $value === 0 => true,
+            is_string($value) => isset(static::$stringToBoolMap[strtolower($value)]),
+            default => false,
+        };
+    }
+
+    protected static function validateBooleanStrict(mixed $value, array $attributes): bool
+    {
+        return is_bool($value);
+    }
+
+    protected static function validateRequiredBoolean(bool $value, array $attributes): bool
+    {
+        return true;
     }
 }
